@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracking Dashboard - Roshi Transport</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #FFF8E7 0%, #F5E6D3 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px 20px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(255, 165, 0, 0.3);
+        }
+
+        .header h1 {
+            color: #2C1810;
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #5D4037;
+            font-size: 1em;
+            font-weight: 400;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            color: #8D6E63;
+            font-size: 0.85em;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card p {
+            color: #2C1810;
+            font-size: 2em;
+            font-weight: 700;
+        }
+
+        .map-container {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .map-header h2 {
+            color: #2C1810;
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #2C1810;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+        }
+
+        #map {
+            height: 500px;
+            border-radius: 15px;
+            border: 2px solid #FFE4B5;
+        }
+
+        .drivers-section {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .drivers-section h2 {
+            color: #2C1810;
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .driver-card {
+            background: linear-gradient(135deg, #FFFBF0 0%, #FFF8E7 100%);
+            border: 2px solid #FFE4B5;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .driver-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(180deg, #4CAF50 0%, #45a049 100%);
+            border-radius: 12px 0 0 12px;
+        }
+
+        .driver-card.inactive::before {
+            background: linear-gradient(180deg, #757575 0%, #616161 100%);
+        }
+
+        .driver-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 165, 0, 0.2);
+            border-color: #FFD700;
+        }
+
+        .driver-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px dashed #FFE4B5;
+        }
+
+        .driver-info h3 {
+            color: #2C1810;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .driver-info p {
+            color: #8D6E63;
+            font-size: 0.9em;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .status-stopped {
+            background: linear-gradient(135deg, #757575 0%, #616161 100%);
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .driver-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-size: 0.8em;
+            color: #8D6E63;
+            font-weight: 500;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 0.95em;
+            color: #2C1810;
+            font-weight: 600;
+        }
+
+        .view-map-btn {
+            margin-top: 15px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .view-map-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8D6E63;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+            margin-top: 15px;
+        }
+
+        .last-update {
+            text-align: center;
+            color: #8D6E63;
+            font-size: 0.85em;
+            margin-bottom: 20px;
+        }
+
+        footer {
+            text-align: center;
+            color: #8D6E63;
+            font-size: 0.85em;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.6em;
+            }
+
+            #map {
+                height: 350px;
+            }
+
+            .driver-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Driver Tracking Dashboard</h1>
+        <p>Roshi Transport Corporation</p>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-card">
+            <h3>Active Drivers</h3>
+            <p id="activeCount">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Drivers</h3>
+            <p id="totalCount">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>Last Update</h3>
+            <p id="lastUpdateTime" style="font-size: 1.2em;">--:--</p>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div class="map-header">
+            <h2>🗺️ Live Map View</h2>
+            <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
+        </div>
+        <div id="map"></div>
+    </div>
+
+    <div class="drivers-section">
+        <h2>👥 Driver List</h2>
+        <div class="last-update">Auto-refresh every 2 minutes</div>
+        <div id="driversList">
+            <div class="empty-state">
+                <p>⏳ Loading driver data...</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2024 Roshi Transport Corporation. All rights reserved.</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStfrQtNvP8d63OIsxyEoY04nhGTB2Yn1L0DZVZ0CGENr4W0dXR0mIe5jNwCmVjOcbeKUfsADqp3zj-/pub?gid=0&single=true&output=csv';
+        const REFRESH_INTERVAL = 120000;
+
+        let map;
+        let markers = {};
+
+        function initMap() {
+            map = L.map('map').setView([28.6139, 77.2090], 5);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                
+                const values = lines[i].split(',');
+                const row = {};
+                
+                headers.forEach((header, index) => {
+                    row[header] = values[index] ? values[index].trim() : '';
+                });
+                
+                if (row['Name'] && row['Latitude'] && row['Longitude']) {
+                    data.push(row);
+                }
+            }
+
+            return data;
+        }
+
+        function getLatestLocationPerDriver(data) {
+            const driverMap = {};
+            
+            data.forEach(entry => {
+                const key = entry['Mobile'];
+                if (!driverMap[key] || new Date(entry['Timestamp']) > new Date(driverMap[key]['Timestamp'])) {
+                    driverMap[key] = entry;
+                }
+            });
+
+            return Object.values(driverMap);
+        }
+
+        function updateMap(drivers) {
+            Object.values(markers).forEach(marker => map.removeLayer(marker));
+            markers = {};
+
+            if (drivers.length === 0) return;
+
+            const bounds = [];
+
+            drivers.forEach(driver => {
+                const lat = parseFloat(driver['Latitude']);
+                const lng = parseFloat(driver['Longitude']);
+
+                if (isNaN(lat) || isNaN(lng)) return;
+
+                bounds.push([lat, lng]);
+
+                const isActive = driver['Status'] === 'Active';
+                const iconColor = isActive ? 'green' : 'gray';
+
+                const customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: ${iconColor}; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+                    iconSize: [30, 30]
+                });
+
+                const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+                
+                const time = new Date(driver['Timestamp']).toLocaleString('en-IN');
+                marker.bindPopup(`
+                    <strong>${driver['Name']}</strong><br>
+                    📱 ${driver['Mobile']}<br>
+                    ⏰ ${time}<br>
+                    Status: ${driver['Status']}
+                `);
+
+                markers[driver['Mobile']] = marker;
+            });
+
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+
+        function updateDriversList(drivers) {
+            const container = document.getElementById('driversList');
+
+            if (drivers.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No drivers tracking at the moment</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = drivers.map(driver => {
+                const isActive = driver['Status'] === 'Active';
+                const time = new Date(driver['Timestamp']).toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const lat = parseFloat(driver['Latitude']).toFixed(6);
+                const lng = parseFloat(driver['Longitude']).toFixed(6);
+
+                return `
+                    <div class="driver-card ${isActive ? '' : 'inactive'}">
+                        <div class="driver-header">
+                            <div class="driver-info">
+                                <h3>${driver['Name']}</h3>
+                                <p>📱 ${driver['Mobile']}</p>
+                            </div>
+                            <span class="status-badge ${isActive ? 'status-active' : 'status-stopped'}">
+                                ${driver['Status']}
+                            </span>
+                        </div>
+                        
+                        <div class="driver-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Last Update</span>
+                                <span class="detail-value">⏰ ${time}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Location</span>
+                                <span class="detail-value">📍 ${lat}, ${lng}</span>
+                            </div>
+                        </div>
+                        
+                        <button class="view-map-btn" onclick="focusOnDriver(${lat}, ${lng}, '${driver['Mobile']}')">
+                            📍 View on Map
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function focusOnDriver(lat, lng, mobile) {
+            map.setView([lat, lng], 15);
+            if (markers[mobile]) {
+                markers[mobile].openPopup();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateStats(drivers) {
+            const activeDrivers = drivers.filter(d => d['Status'] === 'Active').length;
+            document.getElementById('activeCount').textContent = activeDrivers;
+            document.getElementById('totalCount').textContent = drivers.length;
+            
+            const now = new Date();
+            document.getElementById('lastUpdateTime').textContent = 
+                now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function refreshData() {
+            try {
+                const response = await fetch(SHEET_URL, {
+                    cache: 'no-cache'
+                });
+                const csv = await response.text();
+                const allData = parseCSV(csv);
+                const latestDrivers = getLatestLocationPerDriver(allData);
+
+                updateStats(latestDrivers);
+                updateMap(latestDrivers);
+                updateDriversList(latestDrivers);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        window.onload = function() {
+            initMap();
+            refreshData();
+            setInterval(refreshData, REFRESH_INTERVAL);
+        };
+    </script>
+</body>
+</html>

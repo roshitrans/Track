@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roshi Transport Corporation - Load Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #FFF8E7 0%, #F5E6D3 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(255, 165, 0, 0.3);
+        }
+
+        .header h1 {
+            color: #2C1810;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            color: #5D4037;
+            font-size: 1.1em;
+            font-weight: 400;
+        }
+
+        .refresh-info {
+            text-align: center;
+            color: #8D6E63;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 25px;
+            background: white;
+            border-radius: 15px 15px 0 0;
+            border-left: 6px solid #FFD700;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .section-header h2 {
+            color: #2C1810;
+            font-size: 1.6em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #2C1810;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
+        }
+
+        .loads-container {
+            background: white;
+            border-radius: 0 0 15px 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .load-card {
+            background: linear-gradient(135deg, #FFFBF0 0%, #FFF8E7 100%);
+            border: 2px solid #FFE4B5;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .load-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+        }
+
+        .load-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 165, 0, 0.2);
+            border-color: #FFD700;
+        }
+
+        .load-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px dashed #FFE4B5;
+        }
+
+        .route {
+            flex: 1;
+        }
+
+        .location {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2C1810;
+            margin-bottom: 5px;
+        }
+
+        .location-label {
+            font-size: 0.75em;
+            color: #8D6E63;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .arrow {
+            color: #FFA500;
+            font-size: 1.5em;
+            margin: 0 15px;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-available {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .status-booked {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+        }
+
+        .status-completed {
+            background: linear-gradient(135deg, #757575 0%, #616161 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(117, 117, 117, 0.3);
+        }
+
+        .load-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-size: 0.8em;
+            color: #8D6E63;
+            font-weight: 500;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 1em;
+            color: #2C1810;
+            font-weight: 600;
+        }
+
+        .amount {
+            color: #FF6F00;
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .contact-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px dashed #FFE4B5;
+        }
+
+        .contact-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            color: white;
+        }
+
+        .btn-call {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-call:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4);
+        }
+
+        .btn-whatsapp {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+        }
+
+        .btn-whatsapp:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(37, 211, 102, 0.4);
+        }
+
+        .btn-gmail {
+            background: linear-gradient(135deg, #EA4335 0%, #C5221F 100%);
+            box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
+        }
+
+        .btn-gmail:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(234, 67, 53, 0.4);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8D6E63;
+        }
+
+        .empty-state .icon-sphere {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-radius: 50%;
+            opacity: 0.5;
+            box-shadow: 0 4px 20px rgba(255, 165, 0, 0.4);
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #8D6E63;
+            font-size: 1.1em;
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 40px;
+            color: #D32F2F;
+            background: #FFEBEE;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .error-state p {
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        .error-state small {
+            color: #8D6E63;
+            font-size: 0.85em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .load-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .status-badge {
+                margin-top: 10px;
+            }
+
+            .contact-buttons {
+                flex-direction: column;
+            }
+
+            .load-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Roshi Transport Corporation</h1>
+        <p>Real-Time Load Board Dashboard</p>
+    </div>
+
+    <div class="refresh-info">
+        <span id="lastUpdate">Loading data...</span> • Auto-refresh every 2 minutes
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>
+                🟢 Available Loads
+            </h2>
+            <span class="badge" id="availableCount">0</span>
+        </div>
+        <div class="loads-container" id="availableLoads">
+            <div class="loading">Loading available loads...</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <h2>
+                📋 Booked & Completed
+            </h2>
+            <span class="badge" id="completedCount">0</span>
+        </div>
+        <div class="loads-container" id="completedLoads">
+            <div class="loading">Loading booked & completed loads...</div>
+        </div>
+    </div>
+
+    <script>
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtrejgwCaNSFPZm-uahEMbmPS5Ekj9d9kjnS4-HetyksppqNEqai6ixLMHYUyZI28c13tlVp0EQ1iw/pub?gid=0&single=true&output=csv';
+        const PHONE = '8290043074';
+        const WHATSAPP = '9672035881';
+        const EMAIL = 'roshitranportco@gmail.com';
+        const REFRESH_INTERVAL = 120000; // 2 minutes
+
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                
+                const values = lines[i].split(',');
+                const row = {};
+                
+                headers.forEach((header, index) => {
+                    row[header] = values[index] ? values[index].trim() : '';
+                });
+                
+                if (row['Status']) {
+                    data.push(row);
+                }
+            }
+
+            return data;
+        }
+
+        function getContactButtons(contactType) {
+            const buttons = [];
+            
+            if (contactType.toLowerCase().includes('call')) {
+                buttons.push(`<a href="tel:${PHONE}" class="contact-btn btn-call">📞 Call Us</a>`);
+            }
+            if (contactType.toLowerCase().includes('whatsapp')) {
+                buttons.push(`<a href="https://wa.me/91${WHATSAPP}" target="_blank" class="contact-btn btn-whatsapp">💬 WhatsApp</a>`);
+            }
+            if (contactType.toLowerCase().includes('gmail')) {
+                buttons.push(`<a href="mailto:${EMAIL}" class="contact-btn btn-gmail">📧 Email</a>`);
+            }
+
+            return buttons.join('');
+        }
+
+        function getStatusClass(status) {
+            const s = status.toLowerCase();
+            if (s === 'available') return 'status-available';
+            if (s === 'booked') return 'status-booked';
+            if (s === 'completed') return 'status-completed';
+            return 'status-available';
+        }
+
+        function createLoadCard(load) {
+            return `
+                <div class="load-card">
+                    <div class="load-header">
+                        <div style="display: flex; align-items: center; flex: 1;">
+                            <div class="route">
+                                <div class="location-label">Pickup</div>
+                                <div class="location">📍 ${load['Pickup Location'] || 'N/A'}</div>
+                            </div>
+                            <div class="arrow">➔</div>
+                            <div class="route">
+                                <div class="location-label">Drop</div>
+                                <div class="location">📍 ${load['Drop Location'] || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <span class="status-badge ${getStatusClass(load['Status'])}">
+                            ${load['Status'] || 'N/A'}
+                        </span>
+                    </div>
+                    
+                    <div class="load-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Load Type</span>
+                            <span class="detail-value">📦 ${load['Load Type'] || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Weight</span>
+                            <span class="detail-value">⚖️ ${load['Weight'] || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Vehicle Type</span>
+                            <span class="detail-value">🚚 ${load['Vehicle Type'] || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Amount</span>
+                            <span class="detail-value amount">₹ ${load['Amount'] || 'N/A'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-buttons">
+                        ${getContactButtons(load['Contact'] || '')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateDashboard(data) {
+            const available = data.filter(load => load['Status'].toLowerCase() === 'available');
+            const completed = data.filter(load => {
+                const status = load['Status'].toLowerCase();
+                return status === 'booked' || status === 'completed';
+            });
+
+            // Sort by newest first (assuming they're added in order)
+            available.reverse();
+            completed.reverse();
+
+            // Update counts
+            document.getElementById('availableCount').textContent = available.length;
+            document.getElementById('completedCount').textContent = completed.length;
+
+            // Update available loads
+            const availableContainer = document.getElementById('availableLoads');
+            if (available.length === 0) {
+                availableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                        </svg>
+                        <p>No available loads at the moment</p>
+                    </div>
+                `;
+            } else {
+                availableContainer.innerHTML = available.map(createLoadCard).join('');
+            }
+
+            // Update completed loads - WITH YELLOW SPHERE
+            const completedContainer = document.getElementById('completedLoads');
+            if (completed.length === 0) {
+                completedContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon-sphere"></div>
+                        <p>No booked or completed loads</p>
+                    </div>
+                `;
+            } else {
+                completedContainer.innerHTML = completed.map(createLoadCard).join('');
+            }
+
+            // Update timestamp
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = 
+                `Last updated: ${now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch(SHEET_URL, {
+                    method: 'GET',
+                    cache: 'no-cache'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const csv = await response.text();
+                
+                if (!csv || csv.trim() === '') {
+                    throw new Error('Empty response from Google Sheets');
+                }
+                
+                const data = parseCSV(csv);
+                updateDashboard(data);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                const errorHTML = `
+                    <div class="error-state">
+                        <p><strong>⚠️ Unable to load data</strong></p>
+                        <p>Please check your Google Sheet is published correctly</p>
+                        <small>Error: ${error.message}</small>
+                    </div>
+                `;
+                document.getElementById('availableLoads').innerHTML = errorHTML;
+                document.getElementById('completedLoads').innerHTML = errorHTML;
+            }
+        }
+
+        // Initial load
+        fetchData();
+
+        // Auto-refresh every 2 minutes
+        setInterval(fetchData, REFRESH_INTERVAL);
+    </script>
+</body>
+</html>
