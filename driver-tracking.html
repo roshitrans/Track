@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roshi Transport Corporation - Load Board</title>
+    <title>Driver Tracking - Roshi Transport</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -17,12 +17,21 @@
             background: linear-gradient(135deg, #FFF8E7 0%, #F5E6D3 100%);
             min-height: 100vh;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 40px;
-            padding: 30px 20px;
+            margin-bottom: 30px;
+            padding: 25px 20px;
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
             border-radius: 20px;
             box-shadow: 0 8px 32px rgba(255, 165, 0, 0.3);
@@ -30,540 +39,404 @@
 
         .header h1 {
             color: #2C1810;
-            font-size: 2.5em;
+            font-size: 1.8em;
             font-weight: 700;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 8px;
         }
 
         .header p {
             color: #5D4037;
-            font-size: 1.1em;
+            font-size: 1em;
             font-weight: 400;
         }
 
-        .refresh-info {
-            text-align: center;
-            color: #8D6E63;
-            font-size: 0.9em;
-            margin-bottom: 20px;
-            font-weight: 300;
-        }
-
-        .section {
-            margin-bottom: 40px;
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 20px 25px;
+        .card {
             background: white;
-            border-radius: 15px 15px 0 0;
-            border-left: 6px solid #FFD700;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-
-        .section-header h2 {
-            color: #2C1810;
-            font-size: 1.6em;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .badge {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #2C1810;
-            padding: 6px 16px;
             border-radius: 20px;
-            font-size: 0.8em;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #5D4037;
+            font-size: 0.9em;
             font-weight: 600;
-            box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .loads-container {
-            background: white;
-            border-radius: 0 0 15px 15px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-
-        .load-card {
-            background: linear-gradient(135deg, #FFFBF0 0%, #FFF8E7 100%);
+        .form-group input {
+            width: 100%;
+            padding: 15px;
             border: 2px solid #FFE4B5;
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .load-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
-        }
-
-        .load-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(255, 165, 0, 0.2);
-            border-color: #FFD700;
-        }
-
-        .load-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 2px dashed #FFE4B5;
-        }
-
-        .route {
-            flex: 1;
-        }
-
-        .location {
-            font-size: 1.1em;
-            font-weight: 600;
-            color: #2C1810;
-            margin-bottom: 5px;
-        }
-
-        .location-label {
-            font-size: 0.75em;
-            color: #8D6E63;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .arrow {
-            color: #FFA500;
-            font-size: 1.5em;
-            margin: 0 15px;
-        }
-
-        .status-badge {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-available {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-            color: white;
-            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-        }
-
-        .status-booked {
-            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
-            color: white;
-            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
-        }
-
-        .status-completed {
-            background: linear-gradient(135deg, #757575 0%, #616161 100%);
-            color: white;
-            box-shadow: 0 2px 8px rgba(117, 117, 117, 0.3);
-        }
-
-        .load-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .detail-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .detail-label {
-            font-size: 0.8em;
-            color: #8D6E63;
-            font-weight: 500;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .detail-value {
+            font-family: 'Poppins', sans-serif;
             font-size: 1em;
             color: #2C1810;
+            transition: all 0.3s ease;
+            background: #FFFBF0;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+
+        .status-indicator {
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
             font-weight: 600;
+            margin-bottom: 20px;
+            display: none;
         }
 
-        .amount {
-            color: #FF6F00;
-            font-size: 1.3em;
-            font-weight: 700;
+        .status-inactive {
+            background: #F5F5F5;
+            color: #757575;
+            display: block;
         }
 
-        .contact-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 2px dashed #FFE4B5;
+        .status-active {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            display: none;
+            animation: pulse 2s infinite;
         }
 
-        .contact-btn {
-            flex: 1;
-            padding: 12px 20px;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 18px 25px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             font-family: 'Poppins', sans-serif;
-            font-size: 0.9em;
+            font-size: 1em;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            text-decoration: none;
-            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
         }
 
-        .btn-call {
-            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
-        }
-
-        .btn-call:hover {
+        .btn-start:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
         }
 
-        .btn-whatsapp {
-            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
-            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+        .btn-stop {
+            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
         }
 
-        .btn-whatsapp:hover {
+        .btn-stop:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(37, 211, 102, 0.4);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
         }
 
-        .btn-gmail {
-            background: linear-gradient(135deg, #EA4335 0%, #C5221F 100%);
-            box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
-        }
-
-        .btn-gmail:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(234, 67, 53, 0.4);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #8D6E63;
-        }
-
-        .empty-state .icon-sphere {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            border-radius: 50%;
+        .btn:disabled {
             opacity: 0.5;
-            box-shadow: 0 4px 20px rgba(255, 165, 0, 0.4);
+            cursor: not-allowed;
         }
 
-        .empty-state svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 20px;
-            opacity: 0.5;
+        .info-box {
+            background: #FFF8E7;
+            border: 2px solid #FFE4B5;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
         }
 
-        .empty-state p {
-            font-size: 1.1em;
-            font-weight: 500;
+        .info-box p {
+            color: #5D4037;
+            font-size: 0.85em;
+            line-height: 1.6;
+            margin-bottom: 8px;
         }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .location-info {
+            background: #FFFBF0;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .location-info p {
             color: #8D6E63;
-            font-size: 1.1em;
+            font-size: 0.8em;
+            margin: 5px 0;
         }
 
-        .error-state {
-            text-align: center;
-            padding: 40px;
-            color: #D32F2F;
+        .message {
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+            font-size: 0.9em;
+        }
+
+        .message.success {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .message.error {
             background: #FFEBEE;
-            border-radius: 8px;
-            margin: 20px 0;
+            color: #D32F2F;
         }
 
-        .error-state p {
-            font-size: 1em;
-            margin-bottom: 10px;
-        }
-
-        .error-state small {
+        footer {
+            text-align: center;
             color: #8D6E63;
             font-size: 0.85em;
+            margin-top: 30px;
         }
 
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.8em;
-            }
-
-            .load-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .status-badge {
-                margin-top: 10px;
-            }
-
-            .contact-buttons {
-                flex-direction: column;
-            }
-
-            .load-details {
+        @media (max-width: 600px) {
+            .button-group {
                 grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Roshi Transport Corporation</h1>
-        <p>Real-Time Load Board Dashboard</p>
-    </div>
+    <div class="container">
+        <div class="header">
+            <h1>Driver Tracking</h1>
+            <p>Roshi Transport Corporation</p>
+        </div>
 
-    <div class="refresh-info">
-        <span id="lastUpdate">Loading data...</span> • Auto-refresh every 2 minutes
-    </div>
+        <div class="card">
+            <div class="status-indicator status-inactive" id="statusInactive">
+                🔴 Tracking Inactive
+            </div>
+            <div class="status-indicator status-active" id="statusActive">
+                🟢 Tracking Active - Location Updating
+            </div>
 
-    <div class="section">
-        <div class="section-header">
-            <h2>
-                🟢 Available Loads
-            </h2>
-            <span class="badge" id="availableCount">0</span>
-        </div>
-        <div class="loads-container" id="availableLoads">
-            <div class="loading">Loading available loads...</div>
-        </div>
-    </div>
+            <div class="form-group">
+                <label>Driver Name</label>
+                <input type="text" id="driverName" placeholder="Enter your name">
+            </div>
 
-    <div class="section">
-        <div class="section-header">
-            <h2>
-                📋 Booked & Completed
-            </h2>
-            <span class="badge" id="completedCount">0</span>
+            <div class="form-group">
+                <label>Mobile Number</label>
+                <input type="tel" id="driverMobile" placeholder="Enter 10 digit mobile number" maxlength="10">
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-start" id="startBtn" onclick="startTracking()">
+                    Start Journey
+                </button>
+                <button class="btn btn-stop" id="stopBtn" onclick="stopTracking()" disabled>
+                    Stop Journey
+                </button>
+            </div>
+
+            <div class="location-info" id="locationInfo">
+                <p><strong>Last Update:</strong> <span id="lastUpdate">-</span></p>
+                <p><strong>Updates Sent:</strong> <span id="updateCount">0</span></p>
+            </div>
+
+            <div class="message" id="message"></div>
+
+            <div class="info-box">
+                <p><strong>📱 Important:</strong> Keep this page open in your browser while driving.</p>
+                <p><strong>🔋 Tip:</strong> Connect your phone to charger for best results.</p>
+                <p><strong>📍 Privacy:</strong> Location tracking only active during journey.</p>
+            </div>
         </div>
-        <div class="loads-container" id="completedLoads">
-            <div class="loading">Loading booked & completed loads...</div>
-        </div>
+
+        <footer>
+            <p>© 2024 Roshi Transport Corporation. All rights reserved.</p>
+        </footer>
     </div>
 
     <script>
-        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtrejgwCaNSFPZm-uahEMbmPS5Ekj9d9kjnS4-HetyksppqNEqai6ixLMHYUyZI28c13tlVp0EQ1iw/pub?gid=0&single=true&output=csv';
-        const PHONE = '8290043074';
-        const WHATSAPP = '9672035881';
-        const EMAIL = 'roshitranportco@gmail.com';
-        const REFRESH_INTERVAL = 120000; // 2 minutes
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxpgeYCfG3SjssGF_u68zRGjwuK2qbCvcXD3amm8NGDIznn6rZhjgjSev7mTOwtafeRQw/exec';
+        let trackingInterval = null;
+        let updateCount = 0;
+        let driverData = {};
 
-        function parseCSV(csv) {
-            const lines = csv.split('\n');
-            const headers = lines[0].split(',').map(h => h.trim());
-            const data = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim() === '') continue;
+        window.onload = function() {
+            const saved = localStorage.getItem('driverTracking');
+            if (saved) {
+                const data = JSON.parse(saved);
+                document.getElementById('driverName').value = data.name || '';
+                document.getElementById('driverMobile').value = data.mobile || '';
                 
-                const values = lines[i].split(',');
-                const row = {};
-                
-                headers.forEach((header, index) => {
-                    row[header] = values[index] ? values[index].trim() : '';
-                });
-                
-                if (row['Status']) {
-                    data.push(row);
+                if (data.isTracking) {
+                    driverData = data;
+                    updateCount = data.updateCount || 0;
+                    resumeTracking();
                 }
             }
+        };
 
-            return data;
+        function validateInputs() {
+            const name = document.getElementById('driverName').value.trim();
+            const mobile = document.getElementById('driverMobile').value.trim();
+
+            if (!name) {
+                showMessage('Please enter your name', 'error');
+                return false;
+            }
+
+            if (!mobile || mobile.length !== 10 || !/^\d+$/.test(mobile)) {
+                showMessage('Please enter valid 10 digit mobile number', 'error');
+                return false;
+            }
+
+            return true;
         }
 
-        function getContactButtons(contactType) {
-            const buttons = [];
+        function startTracking() {
+            if (!validateInputs()) return;
+
+            if (!navigator.geolocation) {
+                showMessage('Geolocation is not supported by your browser', 'error');
+                return;
+            }
+
+            const name = document.getElementById('driverName').value.trim();
+            const mobile = document.getElementById('driverMobile').value.trim();
+
+            driverData = {
+                name: name,
+                mobile: mobile,
+                isTracking: true,
+                updateCount: 0
+            };
+
+            document.getElementById('driverName').disabled = true;
+            document.getElementById('driverMobile').disabled = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('statusInactive').style.display = 'none';
+            document.getElementById('statusActive').style.display = 'block';
+            document.getElementById('locationInfo').style.display = 'block';
+
+            sendLocation();
+            trackingInterval = setInterval(sendLocation, 300000);
+
+            localStorage.setItem('driverTracking', JSON.stringify(driverData));
+            showMessage('Tracking started successfully!', 'success');
+        }
+
+        function resumeTracking() {
+            document.getElementById('driverName').disabled = true;
+            document.getElementById('driverMobile').disabled = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('statusInactive').style.display = 'none';
+            document.getElementById('statusActive').style.display = 'block';
+            document.getElementById('locationInfo').style.display = 'block';
+            document.getElementById('updateCount').textContent = updateCount;
+
+            trackingInterval = setInterval(sendLocation, 300000);
+        }
+
+        function stopTracking() {
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+                trackingInterval = null;
+            }
+
+            sendLocation(true);
+
+            document.getElementById('driverName').disabled = false;
+            document.getElementById('driverMobile').disabled = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('statusInactive').style.display = 'block';
+            document.getElementById('statusActive').style.display = 'none';
+            document.getElementById('locationInfo').style.display = 'none';
+
+            localStorage.removeItem('driverTracking');
+            updateCount = 0;
             
-            if (contactType.toLowerCase().includes('call')) {
-                buttons.push(`<a href="tel:${PHONE}" class="contact-btn btn-call">📞 Call Us</a>`);
-            }
-            if (contactType.toLowerCase().includes('whatsapp')) {
-                buttons.push(`<a href="https://wa.me/91${WHATSAPP}" target="_blank" class="contact-btn btn-whatsapp">💬 WhatsApp</a>`);
-            }
-            if (contactType.toLowerCase().includes('gmail')) {
-                buttons.push(`<a href="mailto:${EMAIL}" class="contact-btn btn-gmail">📧 Email</a>`);
-            }
-
-            return buttons.join('');
+            showMessage('Journey stopped successfully!', 'success');
         }
 
-        function getStatusClass(status) {
-            const s = status.toLowerCase();
-            if (s === 'available') return 'status-available';
-            if (s === 'booked') return 'status-booked';
-            if (s === 'completed') return 'status-completed';
-            return 'status-available';
-        }
+        function sendLocation(isStopped = false) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const data = {
+                        name: driverData.name,
+                        mobile: driverData.mobile,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        timestamp: new Date().toISOString(),
+                        status: isStopped ? 'Stopped' : 'Active'
+                    };
 
-        function createLoadCard(load) {
-            return `
-                <div class="load-card">
-                    <div class="load-header">
-                        <div style="display: flex; align-items: center; flex: 1;">
-                            <div class="route">
-                                <div class="location-label">Pickup</div>
-                                <div class="location">📍 ${load['Pickup Location'] || 'N/A'}</div>
-                            </div>
-                            <div class="arrow">➔</div>
-                            <div class="route">
-                                <div class="location-label">Drop</div>
-                                <div class="location">📍 ${load['Drop Location'] || 'N/A'}</div>
-                            </div>
-                        </div>
-                        <span class="status-badge ${getStatusClass(load['Status'])}">
-                            ${load['Status'] || 'N/A'}
-                        </span>
-                    </div>
-                    
-                    <div class="load-details">
-                        <div class="detail-item">
-                            <span class="detail-label">Load Type</span>
-                            <span class="detail-value">📦 ${load['Load Type'] || 'N/A'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Weight</span>
-                            <span class="detail-value">⚖️ ${load['Weight'] || 'N/A'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Vehicle Type</span>
-                            <span class="detail-value">🚚 ${load['Vehicle Type'] || 'N/A'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Amount</span>
-                            <span class="detail-value amount">₹ ${load['Amount'] || 'N/A'}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="contact-buttons">
-                        ${getContactButtons(load['Contact'] || '')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function updateDashboard(data) {
-            const available = data.filter(load => load['Status'].toLowerCase() === 'available');
-            const completed = data.filter(load => {
-                const status = load['Status'].toLowerCase();
-                return status === 'booked' || status === 'completed';
-            });
-
-            // Sort by newest first (assuming they're added in order)
-            available.reverse();
-            completed.reverse();
-
-            // Update counts
-            document.getElementById('availableCount').textContent = available.length;
-            document.getElementById('completedCount').textContent = completed.length;
-
-            // Update available loads
-            const availableContainer = document.getElementById('availableLoads');
-            if (available.length === 0) {
-                availableContainer.innerHTML = `
-                    <div class="empty-state">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                        </svg>
-                        <p>No available loads at the moment</p>
-                    </div>
-                `;
-            } else {
-                availableContainer.innerHTML = available.map(createLoadCard).join('');
-            }
-
-            // Update completed loads - WITH YELLOW SPHERE
-            const completedContainer = document.getElementById('completedLoads');
-            if (completed.length === 0) {
-                completedContainer.innerHTML = `
-                    <div class="empty-state">
-                        <div class="icon-sphere"></div>
-                        <p>No booked or completed loads</p>
-                    </div>
-                `;
-            } else {
-                completedContainer.innerHTML = completed.map(createLoadCard).join('');
-            }
-
-            // Update timestamp
-            const now = new Date();
-            document.getElementById('lastUpdate').textContent = 
-                `Last updated: ${now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
-        }
-
-        async function fetchData() {
-            try {
-                const response = await fetch(SHEET_URL, {
-                    method: 'GET',
-                    cache: 'no-cache'
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    fetch(API_URL, {
+                        redirect: 'follow',
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8',
+                        },
+                        body: JSON.stringify(data)
+                    }).then(response => {
+                        console.log('Location sent successfully');
+                        updateCount++;
+                        document.getElementById('updateCount').textContent = updateCount;
+                        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
+                        
+                        driverData.updateCount = updateCount;
+                        localStorage.setItem('driverTracking', JSON.stringify(driverData));
+                    }).catch(error => {
+                        console.error('Error:', error);
+                        showMessage('Failed to send location. Will retry...', 'error');
+                    });
+                },
+                function(error) {
+                    showMessage('Unable to get location. Please enable location services.', 'error');
+                    console.error('Geolocation error:', error);
                 }
-                
-                const csv = await response.text();
-                
-                if (!csv || csv.trim() === '') {
-                    throw new Error('Empty response from Google Sheets');
-                }
-                
-                const data = parseCSV(csv);
-                updateDashboard(data);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                const errorHTML = `
-                    <div class="error-state">
-                        <p><strong>⚠️ Unable to load data</strong></p>
-                        <p>Please check your Google Sheet is published correctly</p>
-                        <small>Error: ${error.message}</small>
-                    </div>
-                `;
-                document.getElementById('availableLoads').innerHTML = errorHTML;
-                document.getElementById('completedLoads').innerHTML = errorHTML;
-            }
+            );
         }
 
-        // Initial load
-        fetchData();
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
 
-        // Auto-refresh every 2 minutes
-        setInterval(fetchData, REFRESH_INTERVAL);
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
     </script>
 </body>
 </html>
