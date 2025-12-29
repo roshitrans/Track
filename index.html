@@ -90,6 +90,52 @@
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
         }
 
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: #FFFBF0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .toggle-group label {
+            color: #5D4037;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #4CAF50;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: left 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            left: 27px;
+        }
+
         .status-indicator {
             padding: 15px;
             border-radius: 12px;
@@ -114,22 +160,22 @@
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
+            50% { opacity: 0.85; }
         }
 
         .button-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 25px;
+            gap: 12px;
+            margin-top: 20px;
         }
 
         .btn {
-            padding: 18px 25px;
+            padding: 16px 20px;
             border: none;
             border-radius: 12px;
             font-family: 'Poppins', sans-serif;
-            font-size: 1em;
+            font-size: 0.95em;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -159,9 +205,66 @@
             box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
         }
 
+        .btn-cancel {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+            grid-column: span 2;
+        }
+
+        .btn-cancel:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+        }
+
+        .btn-update {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #2C1810;
+            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.3);
+            grid-column: span 2;
+        }
+
+        .btn-update:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 165, 0, 0.4);
+        }
+
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .stats-box {
+            background: #FFFBF0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .stats-box.show {
+            display: block;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .stat-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: #8D6E63;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #2C1810;
+            font-weight: 700;
         }
 
         .info-box {
@@ -183,48 +286,67 @@
             margin-bottom: 0;
         }
 
-        .location-info {
-            background: #FFFBF0;
-            border-radius: 10px;
-            padding: 12px;
-            margin-top: 15px;
+        .modal {
             display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
         }
 
-        .location-info p {
-            color: #8D6E63;
-            font-size: 0.8em;
-            margin: 5px 0;
+        .modal.show {
+            display: flex;
         }
 
-        .message {
-            padding: 12px;
-            border-radius: 10px;
-            margin-top: 15px;
-            display: none;
-            font-size: 0.9em;
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
-        .message.success {
-            background: #E8F5E9;
-            color: #2E7D32;
+        .modal-content h2 {
+            color: #2C1810;
+            margin-bottom: 15px;
         }
 
-        .message.error {
-            background: #FFEBEE;
-            color: #D32F2F;
+        .modal-content p {
+            color: #5D4037;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
         }
 
         footer {
             text-align: center;
             color: #8D6E63;
             font-size: 0.85em;
-            margin-top: 30px;
+            margin-top: 20px;
         }
 
         @media (max-width: 600px) {
             .button-group {
                 grid-template-columns: 1fr;
+            }
+            
+            .btn-cancel, .btn-update {
+                grid-column: span 1;
             }
         }
     </style>
@@ -241,7 +363,7 @@
                 🔴 Tracking Inactive
             </div>
             <div class="status-indicator status-active" id="statusActive">
-                🟢 Tracking Active - Location Updating
+                🟢 Tracking Active - Updating Every 10s
             </div>
 
             <div class="form-group">
@@ -254,21 +376,44 @@
                 <input type="tel" id="driverMobile" placeholder="Enter 10 digit mobile number" maxlength="10">
             </div>
 
+            <div class="toggle-group">
+                <label>Show Speed & GPS Accuracy</label>
+                <div class="toggle-switch" id="toggleStats" onclick="toggleStatsDisplay()"></div>
+            </div>
+
             <div class="button-group">
-                <button class="btn btn-start" id="startBtn" onclick="startTracking()">
+                <button class="btn btn-start" id="startBtn" onclick="confirmStart()">
                     Start Journey
                 </button>
-                <button class="btn btn-stop" id="stopBtn" onclick="stopTracking()" disabled>
+                <button class="btn btn-stop" id="stopBtn" onclick="confirmStop()" disabled>
                     Stop Journey
+                </button>
+                <button class="btn btn-cancel" id="cancelBtn" onclick="cancelJourney()" disabled style="display: none;">
+                    Cancel Journey
+                </button>
+                <button class="btn btn-update" id="updateBtn" onclick="forceUpdate()" disabled style="display: none;">
+                    Update Now
                 </button>
             </div>
 
-            <div class="location-info" id="locationInfo">
-                <p><strong>Last Update:</strong> <span id="lastUpdate">-</span></p>
-                <p><strong>Updates Sent:</strong> <span id="updateCount">0</span></p>
+            <div class="stats-box" id="statsBox">
+                <div class="stat-item">
+                    <span class="stat-label">Last Update:</span>
+                    <span class="stat-value" id="lastUpdate">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Updates Sent:</span>
+                    <span class="stat-value" id="updateCount">0</span>
+                </div>
+                <div class="stat-item" id="speedStat" style="display: none;">
+                    <span class="stat-label">Speed:</span>
+                    <span class="stat-value" id="speedValue">- km/h</span>
+                </div>
+                <div class="stat-item" id="accuracyStat" style="display: none;">
+                    <span class="stat-label">GPS Accuracy:</span>
+                    <span class="stat-value" id="accuracyValue">- meters</span>
+                </div>
             </div>
-
-            <div class="message" id="message"></div>
 
             <div class="info-box">
                 <p><strong>📱 Important:</strong> Keep this page open in your browser while driving.</p>
@@ -282,11 +427,43 @@
         </footer>
     </div>
 
+    <!-- Confirmation Modals -->
+    <div class="modal" id="startModal">
+        <div class="modal-content">
+            <h2>Start Journey?</h2>
+            <p>This will start tracking your location every 10 seconds. Make sure to keep this page open.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeModal('startModal')">Cancel</button>
+                <button class="btn btn-start" onclick="startTracking()">Start</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="stopModal">
+        <div class="modal-content">
+            <h2>Stop Journey?</h2>
+            <p>This will stop location tracking. Your last location will be saved for 12 hours.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeModal('stopModal')">Cancel</button>
+                <button class="btn btn-stop" onclick="stopTracking()">Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="thankYouModal">
+        <div class="modal-content">
+            <h2>✅ Journey Stopped</h2>
+            <p>Thank you for using Roshi Transport tracking system. Drive safe!</p>
+            <button class="btn btn-start" onclick="closeModal('thankYouModal')" style="width: 100%;">Close</button>
+        </div>
+    </div>
+
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbxpgeYCfG3SjssGF_u68zRGjwuK2qbCvcXD3amm8NGDIznn6rZhjgjSev7mTOwtafeRQw/exec';
         let trackingInterval = null;
         let updateCount = 0;
         let driverData = {};
+        let showStats = false;
 
         window.onload = function() {
             const saved = localStorage.getItem('driverTracking');
@@ -303,28 +480,54 @@
             }
         };
 
-        function validateInputs() {
+        function toggleStatsDisplay() {
+            showStats = !showStats;
+            const toggle = document.getElementById('toggleStats');
+            toggle.classList.toggle('active');
+            
+            if (showStats) {
+                document.getElementById('speedStat').style.display = 'flex';
+                document.getElementById('accuracyStat').style.display = 'flex';
+            } else {
+                document.getElementById('speedStat').style.display = 'none';
+                document.getElementById('accuracyStat').style.display = 'none';
+            }
+        }
+
+        function confirmStart() {
             const name = document.getElementById('driverName').value.trim();
             const mobile = document.getElementById('driverMobile').value.trim();
 
             if (!name) {
-                showMessage('Please enter your name', 'error');
-                return false;
+                alert('Please enter your name');
+                return;
             }
 
             if (!mobile || mobile.length !== 10 || !/^\d+$/.test(mobile)) {
-                showMessage('Please enter valid 10 digit mobile number', 'error');
-                return false;
+                alert('Please enter valid 10 digit mobile number');
+                return;
             }
 
-            return true;
+            showModal('startModal');
+        }
+
+        function confirmStop() {
+            showModal('stopModal');
+        }
+
+        function showModal(id) {
+            document.getElementById(id).classList.add('show');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
         }
 
         function startTracking() {
-            if (!validateInputs()) return;
+            closeModal('startModal');
 
             if (!navigator.geolocation) {
-                showMessage('Geolocation is not supported by your browser', 'error');
+                alert('Geolocation is not supported by your browser');
                 return;
             }
 
@@ -342,15 +545,18 @@
             document.getElementById('driverMobile').disabled = true;
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
+            document.getElementById('cancelBtn').style.display = 'block';
+            document.getElementById('cancelBtn').disabled = false;
+            document.getElementById('updateBtn').style.display = 'block';
+            document.getElementById('updateBtn').disabled = false;
             document.getElementById('statusInactive').style.display = 'none';
             document.getElementById('statusActive').style.display = 'block';
-            document.getElementById('locationInfo').style.display = 'block';
+            document.getElementById('statsBox').classList.add('show');
 
             sendLocation();
-            trackingInterval = setInterval(sendLocation, 300000);
+            trackingInterval = setInterval(sendLocation, 10000); // 10 seconds
 
             localStorage.setItem('driverTracking', JSON.stringify(driverData));
-            showMessage('Tracking started successfully!', 'success');
         }
 
         function resumeTracking() {
@@ -358,15 +564,21 @@
             document.getElementById('driverMobile').disabled = true;
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
+            document.getElementById('cancelBtn').style.display = 'block';
+            document.getElementById('cancelBtn').disabled = false;
+            document.getElementById('updateBtn').style.display = 'block';
+            document.getElementById('updateBtn').disabled = false;
             document.getElementById('statusInactive').style.display = 'none';
             document.getElementById('statusActive').style.display = 'block';
-            document.getElementById('locationInfo').style.display = 'block';
+            document.getElementById('statsBox').classList.add('show');
             document.getElementById('updateCount').textContent = updateCount;
 
-            trackingInterval = setInterval(sendLocation, 300000);
+            trackingInterval = setInterval(sendLocation, 10000);
         }
 
         function stopTracking() {
+            closeModal('stopModal');
+            
             if (trackingInterval) {
                 clearInterval(trackingInterval);
                 trackingInterval = null;
@@ -378,14 +590,26 @@
             document.getElementById('driverMobile').disabled = false;
             document.getElementById('startBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('updateBtn').style.display = 'none';
             document.getElementById('statusInactive').style.display = 'block';
             document.getElementById('statusActive').style.display = 'none';
-            document.getElementById('locationInfo').style.display = 'none';
+            document.getElementById('statsBox').classList.remove('show');
 
             localStorage.removeItem('driverTracking');
             updateCount = 0;
             
-            showMessage('Journey stopped successfully!', 'success');
+            showModal('thankYouModal');
+        }
+
+        function cancelJourney() {
+            if (confirm('Cancel journey? This will stop tracking immediately.')) {
+                stopTracking();
+            }
+        }
+
+        function forceUpdate() {
+            sendLocation();
         }
 
         function sendLocation(isStopped = false) {
@@ -397,7 +621,9 @@
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
                         timestamp: new Date().toISOString(),
-                        status: isStopped ? 'Stopped' : 'Active'
+                        status: isStopped ? 'Stopped' : 'Active',
+                        speed: position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0,
+                        accuracy: Math.round(position.coords.accuracy)
                     };
 
                     fetch(API_URL, {
@@ -413,29 +639,26 @@
                         document.getElementById('updateCount').textContent = updateCount;
                         document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
                         
+                        if (showStats) {
+                            document.getElementById('speedValue').textContent = data.speed + ' km/h';
+                            document.getElementById('accuracyValue').textContent = data.accuracy + ' meters';
+                        }
+                        
                         driverData.updateCount = updateCount;
                         localStorage.setItem('driverTracking', JSON.stringify(driverData));
                     }).catch(error => {
                         console.error('Error:', error);
-                        showMessage('Failed to send location. Will retry...', 'error');
                     });
                 },
                 function(error) {
-                    showMessage('Unable to get location. Please enable location services.', 'error');
                     console.error('Geolocation error:', error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
                 }
             );
-        }
-
-        function showMessage(text, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.textContent = text;
-            messageDiv.className = 'message ' + type;
-            messageDiv.style.display = 'block';
-
-            setTimeout(() => {
-                messageDiv.style.display = 'none';
-            }, 5000);
         }
     </script>
 </body>
