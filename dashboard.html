@@ -18,6 +18,11 @@
             background: linear-gradient(135deg, #FFF8E7 0%, #F5E6D3 100%);
             min-height: 100vh;
             padding: 20px;
+            transition: background 0.3s;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
         }
 
         .header {
@@ -27,6 +32,25 @@
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
             border-radius: 20px;
             box-shadow: 0 8px 32px rgba(255, 165, 0, 0.3);
+            position: relative;
+        }
+
+        .dark-toggle {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.2);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s;
+        }
+
+        .dark-toggle:hover {
+            background: rgba(0,0,0,0.3);
         }
 
         .header h1 {
@@ -55,6 +79,12 @@
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
             text-align: center;
+            transition: all 0.3s;
+        }
+
+        body.dark-mode .stat-card {
+            background: #333;
+            color: #fff;
         }
 
         .stat-card h3 {
@@ -66,18 +96,36 @@
             margin-bottom: 10px;
         }
 
+        body.dark-mode .stat-card h3 {
+            color: #FFD700;
+        }
+
         .stat-card p {
             color: #2C1810;
             font-size: 2em;
             font-weight: 700;
         }
 
+        body.dark-mode .stat-card p {
+            color: #fff;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
         .map-container {
+            flex: 1;
             background: white;
             border-radius: 20px;
             padding: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
+        }
+
+        body.dark-mode .map-container {
+            background: #333;
         }
 
         .map-header {
@@ -91,6 +139,10 @@
             color: #2C1810;
             font-size: 1.4em;
             font-weight: 600;
+        }
+
+        body.dark-mode .map-header h2 {
+            color: #FFD700;
         }
 
         .refresh-btn {
@@ -111,33 +163,88 @@
         }
 
         #map {
-            height: 500px;
+            height: 600px;
             border-radius: 15px;
             border: 2px solid #FFE4B5;
         }
 
-        .drivers-section {
+        .sidebar {
+            width: 400px;
             background: white;
             border-radius: 20px;
             padding: 25px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-height: 700px;
+            overflow-y: auto;
+            transition: all 0.3s;
         }
 
-        .drivers-section h2 {
+        body.dark-mode .sidebar {
+            background: #333;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+            padding: 15px;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header h2 {
             color: #2C1810;
             font-size: 1.4em;
             font-weight: 600;
-            margin-bottom: 20px;
+        }
+
+        body.dark-mode .sidebar-header h2 {
+            color: #FFD700;
+        }
+
+        .sidebar.collapsed .sidebar-header h2 {
+            display: none;
+        }
+
+        .toggle-sidebar {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s;
+        }
+
+        .toggle-sidebar:hover {
+            transform: scale(1.1);
+        }
+
+        .driver-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .sidebar.collapsed .driver-list {
+            display: none;
         }
 
         .driver-card {
             background: linear-gradient(135deg, #FFFBF0 0%, #FFF8E7 100%);
             border: 2px solid #FFE4B5;
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
+            padding: 15px;
             transition: all 0.3s ease;
             position: relative;
+        }
+
+        body.dark-mode .driver-card {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+            border-color: #FFD700;
         }
 
         .driver-card::before {
@@ -151,12 +258,12 @@
             border-radius: 12px 0 0 12px;
         }
 
-        .driver-card.inactive::before {
+        .driver-card.stopped::before {
             background: linear-gradient(180deg, #757575 0%, #616161 100%);
         }
 
         .driver-card:hover {
-            transform: translateY(-2px);
+            transform: translateX(-3px);
             box-shadow: 0 6px 20px rgba(255, 165, 0, 0.2);
             border-color: #FFD700;
         }
@@ -165,27 +272,33 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 2px dashed #FFE4B5;
+            margin-bottom: 12px;
         }
 
         .driver-info h3 {
             color: #2C1810;
-            font-size: 1.2em;
+            font-size: 1.1em;
             font-weight: 600;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+        }
+
+        body.dark-mode .driver-info h3 {
+            color: #FFD700;
         }
 
         .driver-info p {
             color: #8D6E63;
-            font-size: 0.9em;
+            font-size: 0.85em;
+        }
+
+        body.dark-mode .driver-info p {
+            color: #ccc;
         }
 
         .status-badge {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85em;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.75em;
             font-weight: 600;
             text-transform: uppercase;
         }
@@ -203,70 +316,99 @@
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
+            50% { opacity: 0.7; }
         }
 
         .driver-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            font-size: 0.85em;
+            color: #5D4037;
+            margin-bottom: 12px;
         }
 
-        .detail-item {
-            display: flex;
-            flex-direction: column;
+        body.dark-mode .driver-details {
+            color: #ccc;
         }
 
-        .detail-label {
-            font-size: 0.8em;
-            color: #8D6E63;
-            font-weight: 500;
+        .driver-details div {
             margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
-        .detail-value {
-            font-size: 0.95em;
-            color: #2C1810;
-            font-weight: 600;
+        .driver-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
         }
 
-        .view-map-btn {
-            margin-top: 15px;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-            color: white;
+        .action-btn {
+            padding: 8px 12px;
             border: none;
             border-radius: 8px;
             font-family: 'Poppins', sans-serif;
+            font-size: 0.8em;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            width: 100%;
         }
 
-        .view-map-btn:hover {
+        .btn-remove {
+            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+            color: white;
+        }
+
+        .btn-remove:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+        }
+
+        .btn-update {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #2C1810;
+        }
+
+        .btn-update:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+        }
+
+        .btn-call {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+        }
+
+        .btn-call:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
         }
 
+        .btn-whatsapp {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            color: white;
+        }
+
+        .btn-whatsapp:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+        }
+
+        .btn-map {
+            background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+            color: white;
+            grid-column: span 2;
+        }
+
+        .btn-map:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+        }
+
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             color: #8D6E63;
         }
 
-        .empty-state p {
-            font-size: 1.1em;
-            margin-top: 15px;
-        }
-
-        .last-update {
-            text-align: center;
-            color: #8D6E63;
-            font-size: 0.85em;
-            margin-bottom: 20px;
+        body.dark-mode .empty-state {
+            color: #ccc;
         }
 
         footer {
@@ -276,23 +418,47 @@
             margin-top: 30px;
         }
 
+        body.dark-mode footer {
+            color: #ccc;
+        }
+
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: none;
+            }
+
+            .sidebar.collapsed {
+                width: 100%;
+            }
+
+            #map {
+                height: 400px;
+            }
+        }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.6em;
             }
 
-            #map {
-                height: 350px;
+            .driver-actions {
+                grid-template-columns: 1fr;
             }
 
-            .driver-details {
-                grid-template-columns: 1fr;
+            .btn-map {
+                grid-column: span 1;
             }
         }
     </style>
 </head>
 <body>
     <div class="header">
+        <button class="dark-toggle" onclick="toggleDarkMode()">🌓</button>
         <h1>Driver Tracking Dashboard</h1>
         <p>Roshi Transport Corporation</p>
     </div>
@@ -312,20 +478,24 @@
         </div>
     </div>
 
-    <div class="map-container">
-        <div class="map-header">
-            <h2>🗺️ Live Map View</h2>
-            <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
+    <div class="main-container">
+        <div class="map-container">
+            <div class="map-header">
+                <h2>🗺️ Live Tracking Map</h2>
+                <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
+            </div>
+            <div id="map"></div>
         </div>
-        <div id="map"></div>
-    </div>
 
-    <div class="drivers-section">
-        <h2>👥 Driver List</h2>
-        <div class="last-update">Auto-refresh every 2 minutes</div>
-        <div id="driversList">
-            <div class="empty-state">
-                <p>⏳ Loading driver data...</p>
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Active Drivers</h2>
+                <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+            </div>
+            <div class="driver-list" id="driverList">
+                <div class="empty-state">
+                    <p>⏳ Loading drivers...</p>
+                </div>
             </div>
         </div>
     </div>
@@ -337,13 +507,29 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStfrQtNvP8d63OIsxyEoY04nhGTB2Yn1L0DZVZ0CGENr4W0dXR0mIe5jNwCmVjOcbeKUfsADqp3zj-/pub?gid=0&single=true&output=csv';
-        const REFRESH_INTERVAL = 120000;
+        const REFRESH_INTERVAL = 10000; // 10 seconds
+        const CALL_NUMBER = '8290043074';
+        const WHATSAPP_NUMBER = '9672035881';
 
         let map;
         let markers = {};
+        let routes = {};
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
 
         function initMap() {
-            map = L.map('map').setView([28.6139, 77.2090], 5);
+            map = L.map('map').setView([20.5937, 78.9629], 5);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
@@ -373,55 +559,59 @@
             return data;
         }
 
-        function getLatestLocationPerDriver(data) {
-            const driverMap = {};
-            
-            data.forEach(entry => {
-                const key = entry['Mobile'];
-                if (!driverMap[key] || new Date(entry['Timestamp']) > new Date(driverMap[key]['Timestamp'])) {
-                    driverMap[key] = entry;
-                }
-            });
-
-            return Object.values(driverMap);
-        }
-
         function updateMap(drivers) {
-            Object.values(markers).forEach(marker => map.removeLayer(marker));
-            markers = {};
-
-            if (drivers.length === 0) return;
-
             const bounds = [];
 
             drivers.forEach(driver => {
                 const lat = parseFloat(driver['Latitude']);
                 const lng = parseFloat(driver['Longitude']);
+                const mobile = driver['Mobile'];
 
                 if (isNaN(lat) || isNaN(lng)) return;
 
                 bounds.push([lat, lng]);
 
+                // Update route history
+                if (!routes[mobile]) {
+                    routes[mobile] = [];
+                }
+                routes[mobile].push([lat, lng]);
+                if (routes[mobile].length > 100) routes[mobile].shift();
+
+                // Draw route line
+                if (routes[mobile].length > 1) {
+                    const routeLine = L.polyline(routes[mobile], {
+                        color: '#2196F3',
+                        weight: 3,
+                        opacity: 0.7
+                    }).addTo(map);
+                }
+
+                // Update or create marker
                 const isActive = driver['Status'] === 'Active';
-                const iconColor = isActive ? 'green' : 'gray';
+                const iconColor = isActive ? '#4CAF50' : '#757575';
 
-                const customIcon = L.divIcon({
-                    className: 'custom-marker',
-                    html: `<div style="background: ${iconColor}; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
-                    iconSize: [30, 30]
-                });
+                if (markers[mobile]) {
+                    markers[mobile].setLatLng([lat, lng]);
+                } else {
+                    const customIcon = L.divIcon({
+                        className: 'custom-marker',
+                        html: `<div style="background: ${iconColor}; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+                        iconSize: [30, 30]
+                    });
 
-                const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
-                
+                    markers[mobile] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+                }
+
                 const time = new Date(driver['Timestamp']).toLocaleString('en-IN');
-                marker.bindPopup(`
+                const speed = driver['Speed'] || '0';
+                markers[mobile].bindPopup(`
                     <strong>${driver['Name']}</strong><br>
                     📱 ${driver['Mobile']}<br>
+                    🚗 ${speed} km/h<br>
                     ⏰ ${time}<br>
                     Status: ${driver['Status']}
                 `);
-
-                markers[driver['Mobile']] = marker;
             });
 
             if (bounds.length > 0) {
@@ -429,32 +619,25 @@
             }
         }
 
-        function updateDriversList(drivers) {
-            const container = document.getElementById('driversList');
+        function updateDriverList(drivers) {
+            const container = document.getElementById('driverList');
 
             if (drivers.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <p>No drivers tracking at the moment</p>
-                    </div>
-                `;
+                container.innerHTML = '<div class="empty-state"><p>No active drivers</p></div>';
                 return;
             }
 
             container.innerHTML = drivers.map(driver => {
                 const isActive = driver['Status'] === 'Active';
                 const time = new Date(driver['Timestamp']).toLocaleString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-
-                const lat = parseFloat(driver['Latitude']).toFixed(6);
-                const lng = parseFloat(driver['Longitude']).toFixed(6);
+                const speed = driver['Speed'] || '0';
+                const accuracy = driver['Accuracy'] || '-';
 
                 return `
-                    <div class="driver-card ${isActive ? '' : 'inactive'}">
+                    <div class="driver-card ${isActive ? '' : 'stopped'}">
                         <div class="driver-header">
                             <div class="driver-info">
                                 <h3>${driver['Name']}</h3>
@@ -464,24 +647,34 @@
                                 ${driver['Status']}
                             </span>
                         </div>
-                        
                         <div class="driver-details">
-                            <div class="detail-item">
-                                <span class="detail-label">Last Update</span>
-                                <span class="detail-value">⏰ ${time}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Location</span>
-                                <span class="detail-value">📍 ${lat}, ${lng}</span>
-                            </div>
+                            <div>⏰ Updated: ${time}</div>
+                            <div>🚗 Speed: ${speed} km/h</div>
+                            <div>📍 Accuracy: ${accuracy}m</div>
                         </div>
-                        
-                        <button class="view-map-btn" onclick="focusOnDriver(${lat}, ${lng}, '${driver['Mobile']}')">
-                            📍 View on Map
-                        </button>
+                        <div class="driver-actions">
+                            <button class="action-btn btn-remove" onclick="removeDriver('${driver['Mobile']}')">Remove</button>
+                            <button class="action-btn btn-update" onclick="refreshData()">Update</button>
+                            <a href="tel:${CALL_NUMBER}" class="action-btn btn-call" style="text-decoration: none; text-align: center;">Call</a>
+                            <a href="https://wa.me/91${WHATSAPP_NUMBER}" target="_blank" class="action-btn btn-whatsapp" style="text-decoration: none; text-align: center;">WhatsApp</a>
+                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver['Latitude']}, ${driver['Longitude']}, '${driver['Mobile']}')">View on Map</button>
+                        </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        function removeDriver(mobile) {
+            if (confirm('Remove this driver from view?')) {
+                if (markers[mobile]) {
+                    map.removeLayer(markers[mobile]);
+                    delete markers[mobile];
+                }
+                if (routes[mobile]) {
+                    delete routes[mobile];
+                }
+                refreshData();
+            }
         }
 
         function focusOnDriver(lat, lng, mobile) {
@@ -504,16 +697,13 @@
 
         async function refreshData() {
             try {
-                const response = await fetch(SHEET_URL, {
-                    cache: 'no-cache'
-                });
+                const response = await fetch(SHEET_URL, { cache: 'no-cache' });
                 const csv = await response.text();
-                const allData = parseCSV(csv);
-                const latestDrivers = getLatestLocationPerDriver(allData);
+                const drivers = parseCSV(csv);
 
-                updateStats(latestDrivers);
-                updateMap(latestDrivers);
-                updateDriversList(latestDrivers);
+                updateStats(drivers);
+                updateMap(drivers);
+                updateDriverList(drivers);
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
