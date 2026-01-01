@@ -66,28 +66,6 @@
             font-weight: 400;
         }
 
-        .debug-panel {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            font-family: monospace;
-            font-size: 0.85em;
-        }
-
-        .debug-panel h3 {
-            margin-bottom: 10px;
-            color: #856404;
-        }
-
-        .debug-panel pre {
-            background: white;
-            padding: 10px;
-            border-radius: 5px;
-            overflow-x: auto;
-        }
-
         .stats-bar {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -488,17 +466,6 @@
         <p>Roshi Transport Corporation</p>
     </div>
 
-    <div class="debug-panel" id="debugPanel">
-        <h3>🔧 Debug Info (Click header to hide)</h3>
-        <div id="debugContent">
-            <div>Status: <span id="debugStatus">Initializing...</span></div>
-            <div>Last Fetch: <span id="debugLastFetch">-</span></div>
-            <div>Drivers Found: <span id="debugDriverCount">0</span></div>
-            <div>Raw Data Preview:</div>
-            <pre id="debugRawData">Waiting for data...</pre>
-        </div>
-    </div>
-
     <div class="stats-bar">
         <div class="stat-card">
             <h3>Active Drivers</h3>
@@ -542,30 +509,16 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // CORRECTED SHEET URL
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStfrQtNvP8d63OIsxyEoY04nhGTB2Yn1L0DZVZ0CGENr4W0dXR0mIe5jNwCmVjOcbeKUfsADqp3zj-/pub?gid=0&single=true&output=csv';
-        const REFRESH_INTERVAL = 10000;
+        const REFRESH_INTERVAL = 10000; // 10 seconds
         const CALL_NUMBER = '8290043074';
         const WHATSAPP_NUMBER = '9672035881';
 
         let map;
         let markers = {};
         let routes = {};
-        let debugMode = true;
-
-        document.getElementById('debugPanel').querySelector('h3').addEventListener('click', function() {
-            const content = document.getElementById('debugContent');
-            content.style.display = content.style.display === 'none' ? 'block' : 'none';
-        });
-
-        function updateDebug(status, data = null) {
-            document.getElementById('debugStatus').textContent = status;
-            document.getElementById('debugLastFetch').textContent = new Date().toLocaleTimeString();
-            
-            if (data) {
-                document.getElementById('debugDriverCount').textContent = data.length || 0;
-                document.getElementById('debugRawData').textContent = JSON.stringify(data, null, 2).substring(0, 500) + '...';
-            }
-        }
+        let polylines = {};
 
         function toggleDarkMode() {
             document.body.classList.toggle('dark-mode');
@@ -589,18 +542,11 @@
         }
 
         function parseCSV(csv) {
-            updateDebug('Parsing CSV...');
-            
             const lines = csv.trim().split('\n');
-            if (lines.length < 2) {
-                updateDebug('No data rows found');
-                return [];
-            }
+            if (lines.length < 2) return [];
 
             const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
             const data = [];
-
-            console.log('CSV Headers:', headers);
 
             for (let i = 1; i < lines.length; i++) {
                 if (lines[i].trim() === '') continue;
@@ -626,70 +572,64 @@
                     row[header] = values[index] || '';
                 });
                 
-                // Check various possible field names
-                const name = row['Name'] || row['name'] || row['Driver Name'] || row['driver_name'];
-                const lat = row['Latitude'] || row['latitude'] || row['lat'];
-                const lng = row['Longitude'] || row['longitude'] || row['lng'] || row['lon'];
+                // Flexible field mapping
+                const name = row['Name'] || row['name'];
+                const mobile = row['Mobile'] || row['mobile'] || row['phone'];
+                const lat = row['Latitude'] || row['latitude'];
+                const lng = row['Longitude'] || row['longitude'];
                 
                 if (name && lat && lng && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng))) {
-                    // Normalize field names
-                    row['Name'] = name;
-                    row['Latitude'] = lat;
-                    row['Longitude'] = lng;
-                    row['Mobile'] = row['Mobile'] || row['mobile'] || row['phone'] || '';
-                    row['Status'] = row['Status'] || row['status'] || 'Active';
-                    row['Speed'] = row['Speed'] || row['speed'] || '0';
-                    row['Accuracy'] = row['Accuracy'] || row['accuracy'] || '-';
-                    row['Timestamp'] = row['Timestamp'] || row['timestamp'] || new Date().toISOString();
-                    
-                    data.push(row);
+                    data.push({
+                        Name: name,
+                        Mobile: mobile || '',
+                        Latitude: parseFloat(lat),
+                        Longitude: parseFloat(lng),
+                        Status: row['Status'] || row['status'] || 'Active',
+                        Speed: row['Speed'] || row['speed'] || '0',
+                        Accuracy: row['Accuracy'] || row['accuracy'] || '-',
+                        Timestamp: row['Timestamp'] || row['timestamp'] || new Date().toISOString()
+                    });
                 }
             }
 
-            console.log('Parsed drivers:', data);
-            updateDebug('Parsed successfully', data);
             return data;
         }
 
         function updateMap(drivers) {
             const bounds = [];
 
-            // Clear old polylines
-            map.eachLayer(layer => {
-                if (layer instanceof L.Polyline) {
-                    map.removeLayer(layer);
-                }
-            });
-
             drivers.forEach(driver => {
-                const lat = parseFloat(driver['Latitude']);
-                const lng = parseFloat(driver['Longitude']);
-                const mobile = driver['Mobile'];
-
-                if (isNaN(lat) || isNaN(lng)) return;
+                const lat = driver.Latitude;
+                const lng = driver.Longitude;
+                const mobile = driver.Mobile;
 
                 bounds.push([lat, lng]);
 
+                // Update route history
                 if (!routes[mobile]) {
                     routes[mobile] = [];
                 }
                 routes[mobile].push([lat, lng]);
                 if (routes[mobile].length > 100) routes[mobile].shift();
 
+                // Draw/update route line
                 if (routes[mobile].length > 1) {
-                    L.polyline(routes[mobile], {
+                    if (polylines[mobile]) {
+                        map.removeLayer(polylines[mobile]);
+                    }
+                    polylines[mobile] = L.polyline(routes[mobile], {
                         color: '#2196F3',
                         weight: 3,
                         opacity: 0.7
                     }).addTo(map);
                 }
 
-                const isActive = driver['Status'] === 'Active';
+                // Update or create marker
+                const isActive = driver.Status === 'Active';
                 const iconColor = isActive ? '#4CAF50' : '#757575';
 
                 if (markers[mobile]) {
                     markers[mobile].setLatLng([lat, lng]);
-                    markers[mobile].getElement().querySelector('div').style.background = iconColor;
                 } else {
                     const customIcon = L.divIcon({
                         className: 'custom-marker',
@@ -700,14 +640,13 @@
                     markers[mobile] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
                 }
 
-                const time = new Date(driver['Timestamp']).toLocaleString('en-IN');
-                const speed = driver['Speed'] || '0';
+                const time = new Date(driver.Timestamp).toLocaleString('en-IN');
                 markers[mobile].bindPopup(`
-                    <strong>${driver['Name']}</strong><br>
-                    📱 ${driver['Mobile']}<br>
-                    🚗 ${speed} km/h<br>
+                    <strong>${driver.Name}</strong><br>
+                    📱 ${driver.Mobile}<br>
+                    🚗 ${driver.Speed} km/h<br>
                     ⏰ ${time}<br>
-                    Status: ${driver['Status']}
+                    Status: ${driver.Status}
                 `);
             });
 
@@ -720,41 +659,39 @@
             const container = document.getElementById('driverList');
 
             if (drivers.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>No active drivers found. Make sure drivers have started their journey.</p></div>';
+                container.innerHTML = '<div class="empty-state"><p>No drivers found. Drivers need to start their journey first.</p></div>';
                 return;
             }
 
             container.innerHTML = drivers.map(driver => {
-                const isActive = driver['Status'] === 'Active';
-                const time = new Date(driver['Timestamp']).toLocaleString('en-IN', {
+                const isActive = driver.Status === 'Active';
+                const time = new Date(driver.Timestamp).toLocaleString('en-IN', {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                const speed = driver['Speed'] || '0';
-                const accuracy = driver['Accuracy'] || '-';
 
                 return `
                     <div class="driver-card ${isActive ? '' : 'stopped'}">
                         <div class="driver-header">
                             <div class="driver-info">
-                                <h3>${driver['Name']}</h3>
-                                <p>📱 ${driver['Mobile']}</p>
+                                <h3>${driver.Name}</h3>
+                                <p>📱 ${driver.Mobile}</p>
                             </div>
                             <span class="status-badge ${isActive ? 'status-active' : 'status-stopped'}">
-                                ${driver['Status']}
+                                ${driver.Status}
                             </span>
                         </div>
                         <div class="driver-details">
                             <div>⏰ Updated: ${time}</div>
-                            <div>🚗 Speed: ${speed} km/h</div>
-                            <div>📍 Accuracy: ${accuracy}m</div>
+                            <div>🚗 Speed: ${driver.Speed} km/h</div>
+                            <div>📍 Accuracy: ${driver.Accuracy}m</div>
                         </div>
                         <div class="driver-actions">
-                            <button class="action-btn btn-remove" onclick="removeDriver('${driver['Mobile']}')">Remove</button>
+                            <button class="action-btn btn-remove" onclick="removeDriver('${driver.Mobile}')">Remove</button>
                             <button class="action-btn btn-update" onclick="refreshData()">Update</button>
                             <a href="tel:${CALL_NUMBER}" class="action-btn btn-call">Call</a>
                             <a href="https://wa.me/91${WHATSAPP_NUMBER}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
-                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver['Latitude']}, ${driver['Longitude']}, '${driver['Mobile']}')">View on Map</button>
+                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.Latitude}, ${driver.Longitude}, '${driver.Mobile}')">View on Map</button>
                         </div>
                     </div>
                 `;
@@ -766,6 +703,10 @@
                 if (markers[mobile]) {
                     map.removeLayer(markers[mobile]);
                     delete markers[mobile];
+                }
+                if (polylines[mobile]) {
+                    map.removeLayer(polylines[mobile]);
+                    delete polylines[mobile];
                 }
                 if (routes[mobile]) {
                     delete routes[mobile];
@@ -783,7 +724,7 @@
         }
 
         function updateStats(drivers) {
-            const activeDrivers = drivers.filter(d => d['Status'] === 'Active').length;
+            const activeDrivers = drivers.filter(d => d.Status === 'Active').length;
             document.getElementById('activeCount').textContent = activeDrivers;
             document.getElementById('totalCount').textContent = drivers.length;
             
@@ -794,35 +735,26 @@
 
         async function refreshData() {
             try {
-                updateDebug('Fetching data...');
-                
                 const response = await fetch(SHEET_URL + '&_=' + Date.now(), { 
-                    cache: 'no-cache',
-                    headers: {
-                        'Cache-Control': 'no-cache'
-                    }
+                    cache: 'no-cache'
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP ${response.status}`);
                 }
                 
                 const csv = await response.text();
-                console.log('Raw CSV:', csv.substring(0, 500));
-                
                 const drivers = parseCSV(csv);
-                console.log('Drivers found:', drivers.length);
+
+                console.log('Drivers loaded:', drivers.length);
 
                 updateStats(drivers);
                 updateMap(drivers);
                 updateDriverList(drivers);
-                
-                updateDebug('Data loaded successfully', drivers);
             } catch (error) {
                 console.error('Error fetching data:', error);
-                updateDebug('Error: ' + error.message);
                 document.getElementById('driverList').innerHTML = 
-                    `<div class="empty-state"><p>❌ Error loading data: ${error.message}</p><p>Check console for details</p></div>`;
+                    `<div class="empty-state"><p>❌ Error loading data. Please check connection.</p></div>`;
             }
         }
 
