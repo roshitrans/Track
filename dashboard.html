@@ -756,7 +756,11 @@
         }
 
         function isMoving(driver) {
-            if (driver.Speed > 5) return true; // Moving if speed > 5 km/h
+            // Check status first - if stopped, don't show as moving
+            if (driver.Status === 'Stopped') return false;
+            
+            // Only consider moving if speed is significant
+            if (driver.Speed > 5) return true;
             
             const mobile = driver.Mobile;
             const lastPos = lastPositions[mobile];
@@ -813,7 +817,8 @@
 
                 // Update or create marker
                 const isActive = driver.Status === 'Active';
-                const iconColor = moving ? '#2196F3' : (isActive ? '#4CAF50' : '#757575');
+                const isStopped = driver.Status === 'Stopped';
+                const iconColor = isStopped ? '#757575' : (moving ? '#2196F3' : '#4CAF50');
                 const iconSize = moving ? 35 : 30;
 
                 if (markers[mobile]) {
@@ -887,18 +892,19 @@
 
             container.innerHTML = drivers.map(driver => {
                 const isActive = driver.Status === 'Active';
-                const moving = isMoving(driver);
+                const isStopped = driver.Status === 'Stopped';
+                const moving = !isStopped && isMoving(driver);
                 const timeAgo = getTimeAgo(driver.Timestamp);
 
                 return `
-                    <div class="driver-card ${moving ? 'moving' : (isActive ? '' : 'stopped')}">
+                    <div class="driver-card ${moving ? 'moving' : (isStopped ? 'stopped' : '')}">
                         <div class="driver-header">
                             <div class="driver-info">
                                 <h3>${driver.Name}</h3>
                                 <p>📱 ${driver.Mobile}</p>
                             </div>
-                            <span class="status-badge ${moving ? 'status-moving' : (isActive ? 'status-active' : 'status-stopped')}">
-                                ${moving ? '🔵 Moving' : (isActive ? 'Active' : 'Stopped')}
+                            <span class="status-badge ${moving ? 'status-moving' : (isStopped ? 'status-stopped' : 'status-active')}">
+                                ${moving ? '🔵 Moving' : (isStopped ? 'Stopped' : 'Active')}
                             </span>
                         </div>
                         <div class="driver-details">
@@ -920,21 +926,47 @@
 
         function removeDriver(mobile) {
             if (confirm('Remove this driver from view?')) {
+                // Remove marker
                 if (markers[mobile]) {
                     map.removeLayer(markers[mobile]);
                     delete markers[mobile];
                 }
+                // Remove route line
                 if (polylines[mobile]) {
                     map.removeLayer(polylines[mobile]);
                     delete polylines[mobile];
                 }
+                // Clear data
                 if (routes[mobile]) {
                     delete routes[mobile];
                 }
                 if (lastPositions[mobile]) {
                     delete lastPositions[mobile];
                 }
-                refreshData();
+                
+                // Immediately update the UI without fetching from server
+                const driverList = document.getElementById('driverList');
+                const driverCards = driverList.querySelectorAll('.driver-card');
+                driverCards.forEach(card => {
+                    const cardMobile = card.querySelector('.driver-info p').textContent.replace('📱 ', '').trim();
+                    if (cardMobile === mobile) {
+                        card.remove();
+                    }
+                });
+                
+                // Check if list is now empty
+                if (driverList.querySelectorAll('.driver-card').length === 0) {
+                    driverList.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                }
+                
+                // Update stats immediately
+                const remainingCards = driverList.querySelectorAll('.driver-card').length;
+                const activeCards = driverList.querySelectorAll('.status-active, .status-moving').length;
+                const movingCards = driverList.querySelectorAll('.status-moving').length;
+                
+                document.getElementById('totalCount').textContent = remainingCards;
+                document.getElementById('activeCount').textContent = activeCards;
+                document.getElementById('movingCount').textContent = movingCards;
             }
         }
 
@@ -948,7 +980,8 @@
 
         function updateStats(drivers) {
             const activeDrivers = drivers.filter(d => d.Status === 'Active').length;
-            const movingDrivers = drivers.filter(d => isMoving(d)).length;
+            const stoppedDrivers = drivers.filter(d => d.Status === 'Stopped').length;
+            const movingDrivers = drivers.filter(d => d.Status === 'Active' && isMoving(d)).length;
             
             document.getElementById('activeCount').textContent = activeDrivers;
             document.getElementById('movingCount').textContent = movingDrivers;
