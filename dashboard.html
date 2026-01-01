@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tracking Dashboard - Roshi Transport</title>
+    <title>Real-Time Tracking Dashboard - Roshi Transport</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -60,15 +60,38 @@
             margin-bottom: 8px;
         }
 
-        .header p {
-            color: #5D4037;
-            font-size: 1em;
-            font-weight: 400;
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(76, 175, 80, 0.2);
+            padding: 6px 15px;
+            border-radius: 20px;
+            margin-top: 10px;
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .live-text {
+            color: #2C1810;
+            font-size: 0.9em;
+            font-weight: 600;
         }
 
         .stats-bar {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
             margin-bottom: 30px;
         }
@@ -110,6 +133,12 @@
             color: #fff;
         }
 
+        .refresh-status {
+            font-size: 0.75em;
+            color: #4CAF50;
+            margin-top: 5px;
+        }
+
         .main-container {
             display: flex;
             gap: 20px;
@@ -145,6 +174,12 @@
             color: #FFD700;
         }
 
+        .map-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         .refresh-btn {
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
             color: #2C1810;
@@ -160,6 +195,22 @@
         .refresh-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+        }
+
+        .interval-selector {
+            background: white;
+            border: 2px solid #FFE4B5;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        body.dark-mode .interval-selector {
+            background: #444;
+            color: #fff;
+            border-color: #FFD700;
         }
 
         #map {
@@ -262,6 +313,11 @@
             background: linear-gradient(180deg, #757575 0%, #616161 100%);
         }
 
+        .driver-card.moving::before {
+            background: linear-gradient(180deg, #2196F3 0%, #1976D2 100%);
+            animation: pulse 1s infinite;
+        }
+
         .driver-card:hover {
             transform: translateX(-3px);
             box-shadow: 0 6px 20px rgba(255, 165, 0, 0.2);
@@ -309,6 +365,12 @@
             animation: pulse 2s infinite;
         }
 
+        .status-moving {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
         .status-stopped {
             background: linear-gradient(135deg, #757575 0%, #616161 100%);
             color: white;
@@ -331,6 +393,16 @@
 
         .driver-details div {
             margin-bottom: 4px;
+        }
+
+        .time-ago {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+
+        .time-stale {
+            color: #FF9800;
+            font-weight: 600;
         }
 
         .driver-actions {
@@ -414,6 +486,27 @@
             color: #ccc;
         }
 
+        /* Animated marker */
+        .custom-marker {
+            animation: markerPulse 2s infinite;
+        }
+
+        @keyframes markerPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Moving marker effect */
+        .marker-moving {
+            animation: markerBounce 0.5s ease;
+        }
+
+        @keyframes markerBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
         footer {
             text-align: center;
             color: #8D6E63;
@@ -462,22 +555,33 @@
 <body>
     <div class="header">
         <button class="dark-toggle" onclick="toggleDarkMode()">🌓</button>
-        <h1>Driver Tracking Dashboard</h1>
-        <p>Roshi Transport Corporation</p>
+        <h1>Real-Time Driver Tracking</h1>
+        <div class="live-indicator">
+            <div class="live-dot"></div>
+            <span class="live-text">LIVE</span>
+        </div>
+        <p style="margin-top: 8px; color: #5D4037;">Roshi Transport Corporation</p>
     </div>
 
     <div class="stats-bar">
         <div class="stat-card">
             <h3>Active Drivers</h3>
             <p id="activeCount">0</p>
+            <div class="refresh-status" id="activeStatus">Scanning...</div>
+        </div>
+        <div class="stat-card">
+            <h3>Moving Now</h3>
+            <p id="movingCount">0</p>
+            <div class="refresh-status">In transit</div>
         </div>
         <div class="stat-card">
             <h3>Total Drivers</h3>
             <p id="totalCount">0</p>
         </div>
         <div class="stat-card">
-            <h3>Last Update</h3>
-            <p id="lastUpdateTime" style="font-size: 1.2em;">--:--</p>
+            <h3>Next Update</h3>
+            <p id="countdown" style="font-size: 1.5em;">--</p>
+            <div class="refresh-status" id="lastUpdateTime">--:--</div>
         </div>
     </div>
 
@@ -485,7 +589,15 @@
         <div class="map-container">
             <div class="map-header">
                 <h2>🗺️ Live Tracking Map</h2>
-                <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
+                <div class="map-controls">
+                    <select class="interval-selector" id="intervalSelector" onchange="changeRefreshInterval()">
+                        <option value="3000">Ultra Fast (3s)</option>
+                        <option value="5000" selected>Fast (5s)</option>
+                        <option value="10000">Normal (10s)</option>
+                        <option value="30000">Slow (30s)</option>
+                    </select>
+                    <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
+                </div>
             </div>
             <div id="map"></div>
         </div>
@@ -497,7 +609,7 @@
             </div>
             <div class="driver-list" id="driverList">
                 <div class="empty-state">
-                    <p>⏳ Loading drivers...</p>
+                    <p>⏳ Connecting to live feed...</p>
                 </div>
             </div>
         </div>
@@ -509,16 +621,19 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // CORRECTED SHEET URL
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStfrQtNvP8d63OIsxyEoY04nhGTB2Yn1L0DZVZ0CGENr4W0dXR0mIe5jNwCmVjOcbeKUfsADqp3zj-/pub?gid=0&single=true&output=csv';
-        const REFRESH_INTERVAL = 10000; // 10 seconds
         const CALL_NUMBER = '8290043074';
         const WHATSAPP_NUMBER = '9672035881';
 
+        let REFRESH_INTERVAL = 5000; // Default 5 seconds
         let map;
         let markers = {};
         let routes = {};
         let polylines = {};
+        let lastPositions = {};
+        let refreshIntervalId = null;
+        let countdownIntervalId = null;
+        let nextRefreshTime = Date.now();
 
         function toggleDarkMode() {
             document.body.classList.toggle('dark-mode');
@@ -537,8 +652,39 @@
             map = L.map('map').setView([20.5937, 78.9629], 5);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
             }).addTo(map);
+        }
+
+        function changeRefreshInterval() {
+            const selector = document.getElementById('intervalSelector');
+            REFRESH_INTERVAL = parseInt(selector.value);
+            
+            // Restart the interval
+            if (refreshIntervalId) {
+                clearInterval(refreshIntervalId);
+            }
+            startAutoRefresh();
+            
+            // Save preference
+            localStorage.setItem('refreshInterval', REFRESH_INTERVAL);
+        }
+
+        function startAutoRefresh() {
+            refreshIntervalId = setInterval(refreshData, REFRESH_INTERVAL);
+            nextRefreshTime = Date.now() + REFRESH_INTERVAL;
+        }
+
+        function startCountdown() {
+            if (countdownIntervalId) {
+                clearInterval(countdownIntervalId);
+            }
+            
+            countdownIntervalId = setInterval(() => {
+                const remaining = Math.max(0, Math.ceil((nextRefreshTime - Date.now()) / 1000));
+                document.getElementById('countdown').textContent = remaining + 's';
+            }, 100);
         }
 
         function parseCSV(csv) {
@@ -572,7 +718,6 @@
                     row[header] = values[index] || '';
                 });
                 
-                // Flexible field mapping
                 const name = row['Name'] || row['name'];
                 const mobile = row['Mobile'] || row['mobile'] || row['phone'];
                 const lat = row['Latitude'] || row['latitude'];
@@ -585,7 +730,7 @@
                         Latitude: parseFloat(lat),
                         Longitude: parseFloat(lng),
                         Status: row['Status'] || row['status'] || 'Active',
-                        Speed: row['Speed'] || row['speed'] || '0',
+                        Speed: parseFloat(row['Speed'] || row['speed'] || 0),
                         Accuracy: row['Accuracy'] || row['accuracy'] || '-',
                         Timestamp: row['Timestamp'] || row['timestamp'] || new Date().toISOString()
                     });
@@ -595,6 +740,38 @@
             return data;
         }
 
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // Distance in meters
+        }
+
+        function isMoving(driver) {
+            if (driver.Speed > 5) return true; // Moving if speed > 5 km/h
+            
+            const mobile = driver.Mobile;
+            const lastPos = lastPositions[mobile];
+            
+            if (lastPos) {
+                const distance = calculateDistance(
+                    lastPos.lat, lastPos.lng,
+                    driver.Latitude, driver.Longitude
+                );
+                return distance > 10; // Moved more than 10 meters
+            }
+            
+            return false;
+        }
+
         function updateMap(drivers) {
             const bounds = [];
 
@@ -602,89 +779,132 @@
                 const lat = driver.Latitude;
                 const lng = driver.Longitude;
                 const mobile = driver.Mobile;
+                const moving = isMoving(driver);
 
                 bounds.push([lat, lng]);
+
+                // Store current position
+                lastPositions[mobile] = { lat, lng, time: Date.now() };
 
                 // Update route history
                 if (!routes[mobile]) {
                     routes[mobile] = [];
                 }
-                routes[mobile].push([lat, lng]);
-                if (routes[mobile].length > 100) routes[mobile].shift();
+                
+                // Only add to route if moved significantly
+                const lastRoute = routes[mobile][routes[mobile].length - 1];
+                if (!lastRoute || calculateDistance(lastRoute[0], lastRoute[1], lat, lng) > 5) {
+                    routes[mobile].push([lat, lng]);
+                    if (routes[mobile].length > 200) routes[mobile].shift();
+                }
 
-                // Draw/update route line
+                // Draw/update route line with gradient
                 if (routes[mobile].length > 1) {
                     if (polylines[mobile]) {
                         map.removeLayer(polylines[mobile]);
                     }
                     polylines[mobile] = L.polyline(routes[mobile], {
-                        color: '#2196F3',
-                        weight: 3,
-                        opacity: 0.7
+                        color: moving ? '#2196F3' : '#9E9E9E',
+                        weight: moving ? 4 : 3,
+                        opacity: 0.8,
+                        smoothFactor: 1
                     }).addTo(map);
                 }
 
                 // Update or create marker
                 const isActive = driver.Status === 'Active';
-                const iconColor = isActive ? '#4CAF50' : '#757575';
+                const iconColor = moving ? '#2196F3' : (isActive ? '#4CAF50' : '#757575');
+                const iconSize = moving ? 35 : 30;
 
                 if (markers[mobile]) {
-                    markers[mobile].setLatLng([lat, lng]);
+                    // Smooth marker transition
+                    const currentLatLng = markers[mobile].getLatLng();
+                    const newLatLng = L.latLng(lat, lng);
+                    
+                    if (calculateDistance(currentLatLng.lat, currentLatLng.lng, lat, lng) > 5) {
+                        // Animate marker movement
+                        markers[mobile].setLatLng(newLatLng);
+                        
+                        // Update marker icon
+                        const customIcon = L.divIcon({
+                            className: moving ? 'custom-marker marker-moving' : 'custom-marker',
+                            html: `<div style="background: ${iconColor}; width: ${iconSize}px; height: ${iconSize}px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 12px rgba(0,0,0,0.4); transition: all 0.3s;"></div>`,
+                            iconSize: [iconSize, iconSize]
+                        });
+                        markers[mobile].setIcon(customIcon);
+                    }
                 } else {
                     const customIcon = L.divIcon({
-                        className: 'custom-marker',
-                        html: `<div style="background: ${iconColor}; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
-                        iconSize: [30, 30]
+                        className: moving ? 'custom-marker marker-moving' : 'custom-marker',
+                        html: `<div style="background: ${iconColor}; width: ${iconSize}px; height: ${iconSize}px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 12px rgba(0,0,0,0.4);"></div>`,
+                        iconSize: [iconSize, iconSize]
                     });
 
                     markers[mobile] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
                 }
 
+                // Update popup
                 const time = new Date(driver.Timestamp).toLocaleString('en-IN');
+                const speedDisplay = driver.Speed > 0 ? `🚗 ${Math.round(driver.Speed)} km/h` : '🛑 Stopped';
+                const movingStatus = moving ? '🔵 Moving' : '⚪ Stationary';
+                
                 markers[mobile].bindPopup(`
                     <strong>${driver.Name}</strong><br>
                     📱 ${driver.Mobile}<br>
-                    🚗 ${driver.Speed} km/h<br>
+                    ${speedDisplay}<br>
+                    ${movingStatus}<br>
                     ⏰ ${time}<br>
-                    Status: ${driver.Status}
+                    📍 Accuracy: ±${driver.Accuracy}m
                 `);
             });
 
-            if (bounds.length > 0) {
-                map.fitBounds(bounds, { padding: [50, 50] });
+            if (bounds.length > 0 && !map.getBounds().contains(bounds)) {
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
             }
+        }
+
+        function getTimeAgo(timestamp) {
+            const now = Date.now();
+            const time = new Date(timestamp).getTime();
+            const diff = Math.floor((now - time) / 1000); // seconds
+
+            if (diff < 10) return { text: 'Just now', fresh: true };
+            if (diff < 60) return { text: `${diff}s ago`, fresh: true };
+            if (diff < 3600) return { text: `${Math.floor(diff / 60)}m ago`, fresh: diff < 300 };
+            return { text: `${Math.floor(diff / 3600)}h ago`, fresh: false };
         }
 
         function updateDriverList(drivers) {
             const container = document.getElementById('driverList');
 
             if (drivers.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>No drivers found. Drivers need to start their journey first.</p></div>';
+                container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
                 return;
             }
 
+            // Sort by most recent first
+            drivers.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+
             container.innerHTML = drivers.map(driver => {
                 const isActive = driver.Status === 'Active';
-                const time = new Date(driver.Timestamp).toLocaleString('en-IN', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                const moving = isMoving(driver);
+                const timeAgo = getTimeAgo(driver.Timestamp);
 
                 return `
-                    <div class="driver-card ${isActive ? '' : 'stopped'}">
+                    <div class="driver-card ${moving ? 'moving' : (isActive ? '' : 'stopped')}">
                         <div class="driver-header">
                             <div class="driver-info">
                                 <h3>${driver.Name}</h3>
                                 <p>📱 ${driver.Mobile}</p>
                             </div>
-                            <span class="status-badge ${isActive ? 'status-active' : 'status-stopped'}">
-                                ${driver.Status}
+                            <span class="status-badge ${moving ? 'status-moving' : (isActive ? 'status-active' : 'status-stopped')}">
+                                ${moving ? '🔵 Moving' : (isActive ? 'Active' : 'Stopped')}
                             </span>
                         </div>
                         <div class="driver-details">
-                            <div>⏰ Updated: ${time}</div>
-                            <div>🚗 Speed: ${driver.Speed} km/h</div>
-                            <div>📍 Accuracy: ${driver.Accuracy}m</div>
+                            <div>⏰ <span class="${timeAgo.fresh ? 'time-ago' : 'time-stale'}">${timeAgo.text}</span></div>
+                            <div>🚗 Speed: ${Math.round(driver.Speed)} km/h</div>
+                            <div>📍 Accuracy: ±${driver.Accuracy}m</div>
                         </div>
                         <div class="driver-actions">
                             <button class="action-btn btn-remove" onclick="removeDriver('${driver.Mobile}')">Remove</button>
@@ -711,32 +931,42 @@
                 if (routes[mobile]) {
                     delete routes[mobile];
                 }
+                if (lastPositions[mobile]) {
+                    delete lastPositions[mobile];
+                }
                 refreshData();
             }
         }
 
         function focusOnDriver(lat, lng, mobile) {
-            map.setView([lat, lng], 15);
+            map.setView([lat, lng], 16, { animate: true, duration: 1 });
             if (markers[mobile]) {
-                markers[mobile].openPopup();
+                setTimeout(() => markers[mobile].openPopup(), 500);
             }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function updateStats(drivers) {
             const activeDrivers = drivers.filter(d => d.Status === 'Active').length;
+            const movingDrivers = drivers.filter(d => isMoving(d)).length;
+            
             document.getElementById('activeCount').textContent = activeDrivers;
+            document.getElementById('movingCount').textContent = movingDrivers;
             document.getElementById('totalCount').textContent = drivers.length;
             
             const now = new Date();
             document.getElementById('lastUpdateTime').textContent = 
-                now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            document.getElementById('activeStatus').textContent = 
+                activeDrivers > 0 ? 'Live tracking' : 'Waiting...';
         }
 
         async function refreshData() {
             try {
                 const response = await fetch(SHEET_URL + '&_=' + Date.now(), { 
-                    cache: 'no-cache'
+                    cache: 'no-cache',
+                    mode: 'cors'
                 });
                 
                 if (!response.ok) {
@@ -746,22 +976,35 @@
                 const csv = await response.text();
                 const drivers = parseCSV(csv);
 
-                console.log('Drivers loaded:', drivers.length);
-
                 updateStats(drivers);
                 updateMap(drivers);
                 updateDriverList(drivers);
+                
+                nextRefreshTime = Date.now() + REFRESH_INTERVAL;
             } catch (error) {
                 console.error('Error fetching data:', error);
-                document.getElementById('driverList').innerHTML = 
-                    `<div class="empty-state"><p>❌ Error loading data. Please check connection.</p></div>`;
+                document.getElementById('activeStatus').textContent = 'Connection error';
             }
+        }
+
+        // Load saved interval preference
+        const savedInterval = localStorage.getItem('refreshInterval');
+        if (savedInterval) {
+            REFRESH_INTERVAL = parseInt(savedInterval);
+            document.getElementById('intervalSelector').value = REFRESH_INTERVAL;
         }
 
         window.onload = function() {
             initMap();
             refreshData();
-            setInterval(refreshData, REFRESH_INTERVAL);
+            startAutoRefresh();
+            startCountdown();
+        };
+
+        // Cleanup on page unload
+        window.onbeforeunload = function() {
+            if (refreshIntervalId) clearInterval(refreshIntervalId);
+            if (countdownIntervalId) clearInterval(countdownIntervalId);
         };
     </script>
 </body>
