@@ -490,7 +490,6 @@
             color: #ccc;
         }
 
-        /* Smooth marker transitions */
         .leaflet-marker-icon {
             transition: transform 1s ease-out, opacity 0.3s ease;
         }
@@ -620,6 +619,7 @@
         let polylines = {};
         let lastPositions = {};
         let currentDriverData = {};
+        let manuallyRemovedDrivers = new Set(); // Track manually removed drivers
         let refreshIntervalId = null;
         let countdownIntervalId = null;
         let nextRefreshTime = Date.now();
@@ -716,7 +716,8 @@
                 if (name && mobile && lat && lng && 
                     !isNaN(latNum) && !isNaN(lngNum) &&
                     latNum >= -90 && latNum <= 90 &&
-                    lngNum >= -180 && lngNum <= 180) {
+                    lngNum >= -180 && lngNum <= 180 &&
+                    !manuallyRemovedDrivers.has(mobile)) { // Skip manually removed drivers
                     
                     data.push({
                         Name: name,
@@ -767,7 +768,6 @@
             return false;
         }
 
-        // Smooth marker animation
         function animateMarker(marker, newLatLng, duration = 1000) {
             const startLatLng = marker.getLatLng();
             const startTime = Date.now();
@@ -776,7 +776,6 @@
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / duration, 1);
                 
-                // Easing function for smooth movement
                 const easeProgress = progress < 0.5 
                     ? 2 * progress * progress 
                     : 1 - Math.pow(-2 * progress + 2, 2) / 2;
@@ -806,7 +805,6 @@
                 if (isNaN(lat) || isNaN(lng) || 
                     lat < -90 || lat > 90 || 
                     lng < -180 || lng > 180) {
-                    console.warn(`Invalid coordinates for ${driver.Name}: ${lat}, ${lng}`);
                     return;
                 }
 
@@ -880,15 +878,20 @@
                 `);
             });
 
-            // Remove markers for drivers no longer in data
+            // Remove markers for drivers no longer in sheet (IMMEDIATE REMOVAL)
             Object.keys(markers).forEach(mobile => {
                 if (!currentMobiles.has(mobile)) {
-                    map.removeLayer(markers[mobile]);
-                    delete markers[mobile];
+                    if (markers[mobile]) {
+                        map.removeLayer(markers[mobile]);
+                        delete markers[mobile];
+                    }
                     if (polylines[mobile]) {
                         map.removeLayer(polylines[mobile]);
                         delete polylines[mobile];
                     }
+                    delete routes[mobile];
+                    delete lastPositions[mobile];
+                    delete currentDriverData[mobile];
                 }
             });
 
@@ -922,7 +925,11 @@
             const container = document.getElementById('driverList');
 
             if (drivers.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                // Check if we have any cards - if yes, they should all be from sheet removal
+                const existingCards = container.querySelectorAll('.driver-card');
+                if (existingCards.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                }
                 return;
             }
 
@@ -941,17 +948,31 @@
                 }
             });
 
-            // Remove cards for drivers no longer in data (with fade out)
+            // IMMEDIATE REMOVAL: Remove cards for drivers no longer in sheet
             Object.keys(existingCards).forEach(mobile => {
                 if (!newDriverData[mobile]) {
-                    existingCards[mobile].style.opacity = '0';
-                    existingCards[mobile].style.transform = 'translateX(-20px)';
+                    const card = existingCards[mobile];
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(-30px)';
                     setTimeout(() => {
-                        existingCards[mobile].remove();
+                        if (card.parentNode) {
+                            card.remove();
+                        }
+                        // Check if empty after removal
+                        if (container.querySelectorAll('.driver-card').length === 0) {
+                            container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                        }
                     }, 300);
                     delete existingCards[mobile];
                 }
             });
+
+            // Remove empty state if we're adding cards
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState && drivers.length > 0) {
+                emptyState.remove();
+            }
 
             drivers.forEach(driver => {
                 const mobile = driver.Mobile;
@@ -959,7 +980,6 @@
                 const timeAgo = getTimeAgo(driver.Timestamp);
 
                 if (existingCards[mobile]) {
-                    // Smooth update existing card
                     const card = existingCards[mobile];
                     const oldClass = card.className;
                     const newClass = `driver-card ${moving ? 'moving' : (driver.Status === 'Stopped' ? 'stopped' : '')}`;
@@ -968,7 +988,6 @@
                         card.className = newClass;
                     }
 
-                    // Update status badge
                     const statusBadge = card.querySelector('.status-badge');
                     const newStatusClass = moving ? 'status-moving' : (driver.Status === 'Stopped' ? 'status-stopped' : 'status-active');
                     const newStatusText = moving ? '🔵 Moving' : (driver.Status === 'Stopped' ? 'Stopped' : 'Active');
@@ -978,7 +997,6 @@
                         statusBadge.textContent = newStatusText;
                     }
 
-                    // Update time ago
                     const timeElement = card.querySelector('.driver-details div:first-child span');
                     if (timeElement) {
                         timeElement.className = timeAgo.fresh ? 'time-ago' : 'time-stale';
@@ -987,7 +1005,6 @@
                         }
                     }
 
-                    // Update speed
                     const speedElement = card.querySelector('.driver-details div:nth-child(2)');
                     if (speedElement) {
                         const newSpeed = `🚗 Speed: ${Math.round(driver.Speed)} km/h`;
@@ -997,12 +1014,12 @@
                     }
 
                 } else {
-                    // Create new card with fade in
                     const newCard = document.createElement('div');
                     newCard.className = `driver-card ${moving ? 'moving' : (driver.Status === 'Stopped' ? 'stopped' : '')}`;
                     newCard.dataset.mobile = mobile;
                     newCard.style.opacity = '0';
                     newCard.style.transform = 'translateY(20px)';
+                    newCard.style.transition = 'all 0.3s ease';
                     
                     newCard.innerHTML = `
                         <div class="driver-header">
@@ -1030,7 +1047,6 @@
                     
                     container.appendChild(newCard);
                     
-                    // Trigger fade in animation
                     setTimeout(() => {
                         newCard.style.opacity = '1';
                         newCard.style.transform = 'translateY(0)';
@@ -1042,7 +1058,11 @@
         }
 
         function removeDriver(mobile) {
-            if (confirm('Remove this driver from view?')) {
+            if (confirm('Remove this driver from dashboard?')) {
+                // Add to manually removed list
+                manuallyRemovedDrivers.add(mobile);
+                
+                // IMMEDIATE removal from map
                 if (markers[mobile]) {
                     map.removeLayer(markers[mobile]);
                     delete markers[mobile];
@@ -1055,15 +1075,24 @@
                 delete lastPositions[mobile];
                 delete currentDriverData[mobile];
                 
+                // IMMEDIATE removal from sidebar
                 const driverList = document.getElementById('driverList');
                 const card = driverList.querySelector(`[data-mobile="${mobile}"]`);
                 if (card) {
+                    card.style.transition = 'all 0.3s ease';
                     card.style.opacity = '0';
-                    card.style.transform = 'translateX(-20px)';
-                    setTimeout(() => card.remove(), 300);
+                    card.style.transform = 'translateX(-30px)';
+                    setTimeout(() => {
+                        card.remove();
+                        // Check if empty after removal
+                        if (driverList.querySelectorAll('.driver-card').length === 0) {
+                            driverList.innerHTML = '<div class="empty-state"><p>No drivers tracking. Click refresh to load drivers...</p></div>';
+                        }
+                    }, 300);
                 }
                 
-                setTimeout(updateStatsFromCurrentData, 300);
+                // Update stats immediately
+                setTimeout(updateStatsFromCurrentData, 100);
             }
         }
 
