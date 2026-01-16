@@ -229,6 +229,18 @@
             box-shadow: 0 6px 20px rgba(255, 165, 0, 0.4);
         }
 
+        .btn-navigate {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+            grid-column: span 2;
+        }
+
+        .btn-navigate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+        }
+
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -345,7 +357,7 @@
                 grid-template-columns: 1fr;
             }
             
-            .btn-cancel, .btn-update {
+            .btn-cancel, .btn-update, .btn-navigate {
                 grid-column: span 1;
             }
         }
@@ -387,6 +399,9 @@
                 </button>
                 <button class="btn btn-stop" id="stopBtn" onclick="confirmStop()" disabled>
                     Stop Journey
+                </button>
+                <button class="btn btn-navigate" id="navigateBtn" onclick="openNavigation()">
+                    Navigate Me
                 </button>
                 <button class="btn btn-cancel" id="cancelBtn" onclick="cancelJourney()" disabled style="display: none;">
                     Cancel Journey
@@ -464,8 +479,14 @@
         let updateCount = 0;
         let driverData = {};
         let showStats = false;
+        let routeOrigin = '';
+        let routeDestination = '';
 
         window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            routeOrigin = urlParams.get('origin') || '';
+            routeDestination = urlParams.get('destination') || '';
+
             const saved = localStorage.getItem('driverTracking');
             if (saved) {
                 const data = JSON.parse(saved);
@@ -479,6 +500,16 @@
                 }
             }
         };
+
+        function openNavigation() {
+            if (!routeOrigin || !routeDestination) {
+                alert('Route information not available. Please return to the Approved Route page.');
+                return;
+            }
+
+            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(routeOrigin)}&destination=${encodeURIComponent(routeDestination)}&travelmode=driving`;
+            window.open(mapsUrl, '_blank');
+        }
 
         function toggleStatsDisplay() {
             showStats = !showStats;
