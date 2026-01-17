@@ -352,13 +352,182 @@
             margin-top: 20px;
         }
 
-        @media (max-width: 600px) {
+        /* ============================================
+           MOBILE-ONLY OPTIMIZATIONS
+           Target: 360px - 768px screens
+           Purpose: Eliminate horizontal scroll, improve touch usability
+           NO LOGIC CHANGES - CSS LAYOUT ONLY
+           ============================================ */
+        @media (max-width: 768px) {
+            /* Reduce body padding for better screen utilization */
+            body {
+                padding: 12px;
+                justify-content: flex-start;
+            }
+
+            /* Adjust header sizing for mobile */
+            .header {
+                margin-bottom: 20px;
+                padding: 20px 15px;
+                border-radius: 16px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+                margin-bottom: 6px;
+            }
+
+            .header p {
+                font-size: 0.9em;
+            }
+
+            /* Reduce card padding to maximize content area */
+            .card {
+                padding: 20px 16px;
+                border-radius: 16px;
+                margin-bottom: 16px;
+            }
+
+            /* Optimize form inputs for mobile touch */
+            .form-group {
+                margin-bottom: 16px;
+            }
+
+            .form-group label {
+                font-size: 0.85em;
+                margin-bottom: 6px;
+            }
+
+            .form-group input {
+                padding: 14px 12px;
+                font-size: 16px; /* Prevents zoom on iOS */
+                border-radius: 10px;
+            }
+
+            /* Toggle group mobile optimization */
+            .toggle-group {
+                padding: 12px;
+                border-radius: 10px;
+                margin-bottom: 16px;
+            }
+
+            .toggle-group label {
+                font-size: 0.85em;
+                flex: 1;
+                margin-right: 10px;
+            }
+
+            /* Status indicator mobile sizing */
+            .status-indicator {
+                padding: 12px;
+                border-radius: 10px;
+                margin-bottom: 16px;
+                font-size: 0.9em;
+            }
+
+            /* Button group: Stack vertically on narrow screens */
             .button-group {
                 grid-template-columns: 1fr;
+                gap: 10px;
+                margin-top: 16px;
             }
-            
-            .btn-cancel, .btn-update, .btn-navigate {
+
+            /* All buttons full width on mobile */
+            .btn {
+                padding: 14px 16px;
+                font-size: 0.9em;
+                letter-spacing: 0.3px;
+            }
+
+            /* Cancel, Update, Navigate buttons: override grid-column */
+            .btn-cancel,
+            .btn-update,
+            .btn-navigate {
                 grid-column: span 1;
+            }
+
+            /* Stats box mobile optimization */
+            .stats-box {
+                padding: 12px;
+                margin-top: 12px;
+                border-radius: 8px;
+            }
+
+            .stat-item {
+                font-size: 0.85em;
+                margin-bottom: 6px;
+            }
+
+            /* Info box mobile adjustments */
+            .info-box {
+                padding: 12px;
+                margin-top: 16px;
+                border-radius: 10px;
+            }
+
+            .info-box p {
+                font-size: 0.8em;
+                line-height: 1.5;
+                margin-bottom: 6px;
+            }
+
+            /* Modal mobile optimization */
+            .modal-content {
+                padding: 24px 20px;
+                width: 92%;
+                max-width: 340px;
+                border-radius: 16px;
+            }
+
+            .modal-content h2 {
+                font-size: 1.3em;
+                margin-bottom: 12px;
+            }
+
+            .modal-content p {
+                font-size: 0.9em;
+                margin-bottom: 20px;
+                line-height: 1.5;
+            }
+
+            .modal-buttons {
+                gap: 8px;
+                flex-direction: column;
+            }
+
+            .modal-buttons button {
+                width: 100%;
+            }
+
+            /* Footer mobile sizing */
+            footer {
+                font-size: 0.75em;
+                margin-top: 16px;
+                padding: 0 8px;
+            }
+        }
+
+        /* Extra narrow screens (360px and below) */
+        @media (max-width: 360px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.3em;
+            }
+
+            .card {
+                padding: 16px 12px;
+            }
+
+            .form-group input {
+                padding: 12px 10px;
+            }
+
+            .btn {
+                padding: 12px 14px;
+                font-size: 0.85em;
             }
         }
     </style>
