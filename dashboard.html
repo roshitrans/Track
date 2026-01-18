@@ -609,8 +609,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStfrQtNvP8d63OIsxyEoY04nhGTB2Yn1L0DZVZ0CGENr4W0dXR0mIe5jNwCmVjOcbeKUfsADqp3zj-/pub?gid=0&single=true&output=csv';
-        const CALL_NUMBER = '8290043074';
-        const WHATSAPP_NUMBER = '9672035881';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxFUOy8flzim7T2D3u6-vdZSvRPB_0hJVXqKpjo6GZBeqySIy6_q62zG_QntmWGxTAF/exec';
 
         let REFRESH_INTERVAL = 5000;
         let map;
@@ -619,7 +618,7 @@
         let polylines = {};
         let lastPositions = {};
         let currentDriverData = {};
-        let manuallyRemovedDrivers = new Set(); // Track manually removed drivers
+        let manuallyRemovedDrivers = new Set();
         let refreshIntervalId = null;
         let countdownIntervalId = null;
         let nextRefreshTime = Date.now();
@@ -717,7 +716,7 @@
                     !isNaN(latNum) && !isNaN(lngNum) &&
                     latNum >= -90 && latNum <= 90 &&
                     lngNum >= -180 && lngNum <= 180 &&
-                    !manuallyRemovedDrivers.has(mobile)) { // Skip manually removed drivers
+                    !manuallyRemovedDrivers.has(mobile)) {
                     
                     data.push({
                         Name: name,
@@ -878,7 +877,6 @@
                 `);
             });
 
-            // Remove markers for drivers no longer in sheet (IMMEDIATE REMOVAL)
             Object.keys(markers).forEach(mobile => {
                 if (!currentMobiles.has(mobile)) {
                     if (markers[mobile]) {
@@ -925,7 +923,6 @@
             const container = document.getElementById('driverList');
 
             if (drivers.length === 0) {
-                // Check if we have any cards - if yes, they should all be from sheet removal
                 const existingCards = container.querySelectorAll('.driver-card');
                 if (existingCards.length === 0) {
                     container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
@@ -948,7 +945,6 @@
                 }
             });
 
-            // IMMEDIATE REMOVAL: Remove cards for drivers no longer in sheet
             Object.keys(existingCards).forEach(mobile => {
                 if (!newDriverData[mobile]) {
                     const card = existingCards[mobile];
@@ -959,7 +955,6 @@
                         if (card.parentNode) {
                             card.remove();
                         }
-                        // Check if empty after removal
                         if (container.querySelectorAll('.driver-card').length === 0) {
                             container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
                         }
@@ -968,7 +963,6 @@
                 }
             });
 
-            // Remove empty state if we're adding cards
             const emptyState = container.querySelector('.empty-state');
             if (emptyState && drivers.length > 0) {
                 emptyState.remove();
@@ -1037,11 +1031,11 @@
                             <div>📍 Accuracy: ±${driver.Accuracy}m</div>
                         </div>
                         <div class="driver-actions">
-                            <button class="action-btn btn-remove" onclick="removeDriver('${driver.Mobile}')">Remove</button>
+                            <button class="action-btn btn-remove" onclick="removeDriver('${mobile}')">Stop</button>
                             <button class="action-btn btn-update" onclick="refreshData()">Update</button>
-                            <a href="tel:${CALL_NUMBER}" class="action-btn btn-call">Call</a>
-                            <a href="https://wa.me/91${WHATSAPP_NUMBER}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
-                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.Latitude}, ${driver.Longitude}, '${driver.Mobile}')">View on Map</button>
+                            <button class="action-btn btn-call" onclick="callDriver('${mobile}')">Call</button>
+                            <button class="action-btn btn-whatsapp" onclick="whatsappDriver('${mobile}')">WhatsApp</button>
+                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.Latitude}, ${driver.Longitude}, '${mobile}')">View on Map</button>
                         </div>
                     `;
                     
@@ -1057,12 +1051,36 @@
             currentDriverData = newDriverData;
         }
 
-        function removeDriver(mobile) {
-            if (confirm('Remove this driver from dashboard?')) {
-                // Add to manually removed list
+        async function removeDriver(mobile) {
+            if (!confirm('Stop tracking this driver?')) {
+                return;
+            }
+
+            const driver = currentDriverData[mobile];
+            if (!driver) {
+                alert('Driver data not found');
+                return;
+            }
+
+            try {
+                const now = new Date().toISOString();
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'stopDriver',
+                        mobile: mobile,
+                        tripStatus: 'Stopped',
+                        isActive: false,
+                        endTime: now
+                    })
+                });
+
                 manuallyRemovedDrivers.add(mobile);
                 
-                // IMMEDIATE removal from map
                 if (markers[mobile]) {
                     map.removeLayer(markers[mobile]);
                     delete markers[mobile];
@@ -1075,7 +1093,6 @@
                 delete lastPositions[mobile];
                 delete currentDriverData[mobile];
                 
-                // IMMEDIATE removal from sidebar
                 const driverList = document.getElementById('driverList');
                 const card = driverList.querySelector(`[data-mobile="${mobile}"]`);
                 if (card) {
@@ -1084,16 +1101,38 @@
                     card.style.transform = 'translateX(-30px)';
                     setTimeout(() => {
                         card.remove();
-                        // Check if empty after removal
                         if (driverList.querySelectorAll('.driver-card').length === 0) {
                             driverList.innerHTML = '<div class="empty-state"><p>No drivers tracking. Click refresh to load drivers...</p></div>';
                         }
                     }, 300);
                 }
                 
-                // Update stats immediately
                 setTimeout(updateStatsFromCurrentData, 100);
+                
+            } catch (error) {
+                console.error('Error stopping driver:', error);
+                alert('Failed to stop driver tracking. Please try again.');
             }
+        }
+
+        function callDriver(mobile) {
+            const driver = currentDriverData[mobile];
+            if (!driver || !driver.Mobile) {
+                alert('Driver phone number not available');
+                return;
+            }
+            window.location.href = `tel:${driver.Mobile}`;
+        }
+
+        function whatsappDriver(mobile) {
+            const driver = currentDriverData[mobile];
+            if (!driver || !driver.Mobile) {
+                alert('Driver phone number not available');
+                return;
+            }
+            const cleanNumber = driver.Mobile.replace(/\D/g, '');
+            const formattedNumber = cleanNumber.startsWith('91') ? cleanNumber : `91${cleanNumber}`;
+            window.open(`https://wa.me/${formattedNumber}`, '_blank');
         }
 
         function focusOnDriver(lat, lng, mobile) {
