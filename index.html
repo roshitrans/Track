@@ -601,7 +601,6 @@
         </footer>
     </div>
 
-    <!-- Confirmation Modals -->
     <div class="modal" id="startModal">
         <div class="modal-content">
             <h2>Start Journey?</h2>
@@ -644,7 +643,6 @@
         const API_URL = 'https://script.google.com/macros/s/AKfycbxpgeYCfG3SjssGF_u68zRGjwuK2qbCvcXD3amm8NGDIznn6rZhjgjSev7mTOwtafeRQw/exec';
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStfrQtNvP8d63OIsxyEoY04nhGTB2Yn1L0DZVZ0CGENr4W0dXR0mIe5jNwCmVjOcbeKUfsADqp3zj-/pub?gid=0&single=true&output=csv';
         
-        // STATE MACHINE
         const AppState = {
             IDLE: 'IDLE',
             ACTIVE: 'ACTIVE',
@@ -660,8 +658,8 @@
         let routeOrigin = '';
         let routeDestination = '';
         let currentTripId = null;
+        let isStoppingInProgress = false;
 
-        // Generate unique trip ID
         function generateTripId() {
             return `TRIP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         }
@@ -676,16 +674,13 @@
                 try {
                     const data = JSON.parse(saved);
                     
-                    if (data.isTracking && data.mobile && data.tripId) {
-                        console.log('Found saved tracking session, verifying...');
+                    if (data.isTracking && data.mobile && data.tripId && data.name) {
                         verifyAndResumeTracking(data);
                     } else {
-                        console.log('Incomplete saved data, clearing');
                         localStorage.removeItem('driverTracking');
                         resetToIdleState();
                     }
                 } catch (e) {
-                    console.error('Error parsing saved data:', e);
                     localStorage.removeItem('driverTracking');
                     resetToIdleState();
                 }
@@ -708,7 +703,6 @@
                 clearTimeout(timeoutId);
                 
                 if (!response.ok) {
-                    console.warn('Sheet fetch failed during resume, but continuing anyway');
                     resumeTrackingWithoutVerification(data);
                     return;
                 }
@@ -718,29 +712,19 @@
                 const myDriver = drivers.find(d => d.Mobile === data.mobile);
                 
                 if (!myDriver) {
-                    console.warn('Driver not found in sheet, but resuming anyway');
                     resumeTrackingWithoutVerification(data);
                     return;
                 }
                 
-                // CRITICAL: Only check if explicitly "Stopped" with same trip_id
                 if (myDriver.TripStatus && myDriver.TripStatus.toUpperCase() === 'STOPPED') {
-                    console.log('TripStatus is explicitly STOPPED, cannot resume');
                     localStorage.removeItem('driverTracking');
                     resetToIdleState();
                     return;
                 }
                 
-                // Any other value or missing value = continue tracking
-                console.log('TripStatus allows resume, continuing...');
                 resumeTrackingWithoutVerification(data);
                 
             } catch (error) {
-                if (error.name === 'AbortError') {
-                    console.warn('Sheet verification timed out, resuming anyway');
-                } else {
-                    console.warn('Error during verification:', error);
-                }
                 resumeTrackingWithoutVerification(data);
             }
         }
@@ -791,15 +775,12 @@
             return data;
         }
 
-        // CRITICAL FIX: Only check status every 30 seconds, not 3 seconds
-        // And only stop if explicitly "STOPPED"
         async function checkTripStatus() {
             if (currentState !== AppState.ACTIVE) {
                 return;
             }
 
             if (!driverData.mobile || !currentTripId) {
-                console.warn('Missing mobile or tripId, ignoring status check');
                 return;
             }
 
@@ -816,7 +797,6 @@
                 clearTimeout(timeoutId);
                 
                 if (!response.ok) {
-                    console.warn('Status check failed, ignoring and continuing');
                     return;
                 }
                 
@@ -825,29 +805,22 @@
                 const myDriver = drivers.find(d => d.Mobile === driverData.mobile);
                 
                 if (!myDriver) {
-                    console.warn('Driver not in sheet during status check, ignoring');
                     return;
                 }
                 
-                // CRITICAL: Only stop if TripStatus is EXACTLY "Stopped" (case-insensitive)
                 const tripStatus = (myDriver.TripStatus || '').trim();
                 if (tripStatus.toUpperCase() === 'STOPPED') {
-                    console.log('Admin set TripStatus to STOPPED, executing stop');
                     executeAdminStop();
                 }
-                // All other values (Active, empty, etc.) = continue tracking
                 
             } catch (error) {
-                if (error.name === 'AbortError') {
-                    console.warn('Status check timed out, ignoring');
-                } else {
-                    console.warn('Error checking status, ignoring:', error);
-                }
-                // NEVER stop on error
             }
         }
 
         function executeAdminStop() {
+            if (isStoppingInProgress) return;
+            isStoppingInProgress = true;
+
             currentState = AppState.FORCED_STOP;
 
             if (trackingInterval) {
@@ -868,6 +841,8 @@
             document.getElementById('statusBlocked').style.display = 'block';
             document.getElementById('statusInactive').style.display = 'none';
             showModal('adminStoppedModal');
+            
+            isStoppingInProgress = false;
         }
 
         function resetToIdleState() {
@@ -942,8 +917,6 @@
                 return;
             }
 
-            // REMOVED: Pre-flight check that could fail and prevent start
-            // Just show modal directly
             showModal('startModal');
         }
 
@@ -975,7 +948,11 @@
             const name = document.getElementById('driverName').value.trim();
             const mobile = document.getElementById('driverMobile').value.trim();
 
-            // Generate new trip ID
+            if (!name || !mobile) {
+                alert('Name and mobile are required');
+                return;
+            }
+
             currentTripId = generateTripId();
 
             currentState = AppState.ACTIVE;
@@ -1001,11 +978,9 @@
 
             sendLocation();
             
-            // CRITICAL FIX: Only ONE location interval
             if (trackingInterval) clearInterval(trackingInterval);
             trackingInterval = setInterval(sendLocation, 10000);
             
-            // CRITICAL FIX: Check status every 30 seconds instead of 3
             if (statusCheckInterval) clearInterval(statusCheckInterval);
             statusCheckInterval = setInterval(checkTripStatus, 30000);
 
@@ -1028,7 +1003,6 @@
             document.getElementById('statsBox').classList.add('show');
             document.getElementById('updateCount').textContent = updateCount;
 
-            // CRITICAL FIX: Clear any existing intervals first
             if (trackingInterval) clearInterval(trackingInterval);
             if (statusCheckInterval) clearInterval(statusCheckInterval);
             
@@ -1037,6 +1011,9 @@
         }
 
         function stopTracking() {
+            if (isStoppingInProgress) return;
+            isStoppingInProgress = true;
+
             closeModal('stopModal');
             
             if (trackingInterval) {
@@ -1057,6 +1034,8 @@
             resetToIdleState();
             
             showModal('thankYouModal');
+            
+            isStoppingInProgress = false;
         }
 
         function cancelJourney() {
@@ -1071,15 +1050,21 @@
 
         function sendLocation(isStopped = false) {
             if (currentState !== AppState.ACTIVE && !isStopped) {
-                console.log('Not in ACTIVE state, skipping location send');
+                return;
+            }
+
+            const name = driverData.name;
+            const mobile = driverData.mobile;
+
+            if (!name || !mobile || !currentTripId) {
                 return;
             }
 
             navigator.geolocation.getCurrentPosition(
                 function(position) {
                     const data = {
-                        name: driverData.name,
-                        mobile: driverData.mobile,
+                        name: name,
+                        mobile: mobile,
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
                         timestamp: new Date().toISOString(),
@@ -1089,7 +1074,6 @@
                         tripId: currentTripId
                     };
 
-                    // CRITICAL: Send location update without modifying TripStatus
                     fetch(API_URL, {
                         redirect: 'follow',
                         method: 'POST',
@@ -1098,8 +1082,7 @@
                         },
                         body: JSON.stringify(data)
                     }).then(response => {
-                        if (currentState === AppState.ACTIVE) {
-                            console.log('Location sent successfully');
+                        if (currentState === AppState.ACTIVE && !isStopped) {
                             updateCount++;
                             document.getElementById('updateCount').textContent = updateCount;
                             document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
@@ -1113,13 +1096,9 @@
                             localStorage.setItem('driverTracking', JSON.stringify(driverData));
                         }
                     }).catch(error => {
-                        console.error('Error sending location:', error);
-                        // CRITICAL: Don't stop tracking on API error
                     });
                 },
                 function(error) {
-                    console.error('Geolocation error:', error);
-                    // CRITICAL: Don't stop tracking on GPS error
                 },
                 {
                     enableHighAccuracy: true,
