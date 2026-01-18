@@ -618,7 +618,6 @@
         let polylines = {};
         let lastPositions = {};
         let currentDriverData = {};
-        let manuallyRemovedDrivers = new Set();
         let refreshIntervalId = null;
         let countdownIntervalId = null;
         let nextRefreshTime = Date.now();
@@ -708,17 +707,17 @@
                 const mobile = row['Mobile'] || row['mobile'] || row['phone'];
                 const lat = row['Latitude'] || row['latitude'];
                 const lng = row['Longitude'] || row['longitude'];
-                const tripStatus = row['TripStatus'] || row['tripstatus'] || row['Trip Status'] || row['Status'] || row['status'];
+                const tripStatus = (row['TripStatus'] || row['tripstatus'] || row['Trip Status'] || '').trim();
                 
                 const latNum = parseFloat(lat);
                 const lngNum = parseFloat(lng);
                 
+                // CRITICAL FIX: Only show drivers with TripStatus === "Active" (case-insensitive)
                 if (name && mobile && lat && lng && 
                     !isNaN(latNum) && !isNaN(lngNum) &&
                     latNum >= -90 && latNum <= 90 &&
                     lngNum >= -180 && lngNum <= 180 &&
-                    (!tripStatus || tripStatus === 'Active') &&
-                    !manuallyRemovedDrivers.has(mobile)) {
+                    tripStatus.toLowerCase() === 'active') {
                     
                     data.push({
                         Name: name,
@@ -880,6 +879,7 @@
                 `);
             });
 
+            // CRITICAL FIX: Remove markers for drivers no longer in active list
             Object.keys(markers).forEach(mobile => {
                 if (!currentMobiles.has(mobile)) {
                     if (markers[mobile]) {
@@ -928,7 +928,7 @@
             if (drivers.length === 0) {
                 const existingCards = container.querySelectorAll('.driver-card');
                 if (existingCards.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                    container.innerHTML = '<div class="empty-state"><p>No active drivers. Drivers with TripStatus "Stopped" are hidden.</p></div>';
                 }
                 return;
             }
@@ -948,6 +948,7 @@
                 }
             });
 
+            // CRITICAL FIX: Remove cards for drivers no longer in active list
             Object.keys(existingCards).forEach(mobile => {
                 if (!newDriverData[mobile]) {
                     const card = existingCards[mobile];
@@ -959,7 +960,7 @@
                             card.remove();
                         }
                         if (container.querySelectorAll('.driver-card').length === 0) {
-                            container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                            container.innerHTML = '<div class="empty-state"><p>No active drivers. Drivers with TripStatus "Stopped" are hidden.</p></div>';
                         }
                     }, 300);
                     delete existingCards[mobile];
@@ -1034,7 +1035,7 @@
                             <div>📍 Accuracy: ±${driver.Accuracy}m</div>
                         </div>
                         <div class="driver-actions">
-                            <button class="action-btn btn-remove" onclick="removeDriver('${mobile}')">Stop</button>
+                            <button class="action-btn btn-remove" onclick="removeDriver('${mobile}', '${driver.Name}')">Stop</button>
                             <button class="action-btn btn-update" onclick="refreshData()">Update</button>
                             <button class="action-btn btn-call" onclick="callDriver('${mobile}')">Call</button>
                             <button class="action-btn btn-whatsapp" onclick="whatsappDriver('${mobile}')">WhatsApp</button>
@@ -1054,20 +1055,17 @@
             currentDriverData = newDriverData;
         }
 
-        async function removeDriver(mobile) {
-            if (!confirm('Stop tracking this driver? This will change their TripStatus to "Stopped" in the system.')) {
-                return;
-            }
-
-            const driver = currentDriverData[mobile];
-            if (!driver) {
-                alert('Driver data not found');
+        // CRITICAL FIX: Stop button only sets TripStatus to "Stopped" in sheet
+        async function removeDriver(mobile, driverName) {
+            if (!confirm(`Stop tracking ${driverName}? This will set their TripStatus to "Stopped" in the system.`)) {
                 return;
             }
 
             try {
                 const now = new Date().toISOString();
-                const response = await fetch(SCRIPT_URL, {
+                
+                // Send request to update TripStatus in Google Sheets
+                await fetch(SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: {
@@ -1077,40 +1075,14 @@
                         action: 'stopDriver',
                         mobile: mobile,
                         tripStatus: 'Stopped',
-                        isActive: false,
                         endTime: now
                     })
                 });
 
-                manuallyRemovedDrivers.add(mobile);
-                
-                if (markers[mobile]) {
-                    map.removeLayer(markers[mobile]);
-                    delete markers[mobile];
-                }
-                if (polylines[mobile]) {
-                    map.removeLayer(polylines[mobile]);
-                    delete polylines[mobile];
-                }
-                delete routes[mobile];
-                delete lastPositions[mobile];
-                delete currentDriverData[mobile];
-                
-                const driverList = document.getElementById('driverList');
-                const card = driverList.querySelector(`[data-mobile="${mobile}"]`);
-                if (card) {
-                    card.style.transition = 'all 0.3s ease';
-                    card.style.opacity = '0';
-                    card.style.transform = 'translateX(-30px)';
-                    setTimeout(() => {
-                        card.remove();
-                        if (driverList.querySelectorAll('.driver-card').length === 0) {
-                            driverList.innerHTML = '<div class="empty-state"><p>No drivers tracking. Click refresh to load drivers...</p></div>';
-                        }
-                    }, 300);
-                }
-                
-                setTimeout(updateStatsFromCurrentData, 100);
+                // Refresh data to reflect changes from sheet
+                setTimeout(() => {
+                    refreshData();
+                }, 1000);
                 
             } catch (error) {
                 console.error('Error stopping driver:', error);
@@ -1118,22 +1090,24 @@
             }
         }
 
+        // CRITICAL FIX: Use driver's actual mobile number from sheet
         function callDriver(mobile) {
-            const driver = currentDriverData[mobile];
-            if (!driver || !driver.Mobile) {
+            if (!mobile) {
                 alert('Driver phone number not available');
                 return;
             }
-            window.location.href = `tel:${driver.Mobile}`;
+            // Use the exact mobile number from the sheet
+            window.location.href = `tel:${mobile}`;
         }
 
+        // CRITICAL FIX: Use driver's actual mobile number from sheet
         function whatsappDriver(mobile) {
-            const driver = currentDriverData[mobile];
-            if (!driver || !driver.Mobile) {
+            if (!mobile) {
                 alert('Driver phone number not available');
                 return;
             }
-            const cleanNumber = driver.Mobile.replace(/\D/g, '');
+            // Clean and format the mobile number
+            const cleanNumber = mobile.replace(/\D/g, '');
             const formattedNumber = cleanNumber.startsWith('91') ? cleanNumber : `91${cleanNumber}`;
             window.open(`https://wa.me/${formattedNumber}`, '_blank');
         }
@@ -1147,8 +1121,8 @@
         }
 
         function updateStats(drivers) {
-            const activeDrivers = drivers.filter(d => d.Status === 'Active').length;
-            const movingDrivers = drivers.filter(d => d.Status === 'Active' && isMoving(d)).length;
+            const activeDrivers = drivers.length;
+            const movingDrivers = drivers.filter(d => isMoving(d)).length;
             
             smoothUpdateElement(document.getElementById('activeCount'), activeDrivers.toString());
             smoothUpdateElement(document.getElementById('movingCount'), movingDrivers.toString());
