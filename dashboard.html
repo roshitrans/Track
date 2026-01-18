@@ -717,7 +717,7 @@
                     !isNaN(latNum) && !isNaN(lngNum) &&
                     latNum >= -90 && latNum <= 90 &&
                     lngNum >= -180 && lngNum <= 180 &&
-                    tripStatus === 'Active' &&
+                    (!tripStatus || tripStatus === 'Active') &&
                     !manuallyRemovedDrivers.has(mobile)) {
                     
                     data.push({
