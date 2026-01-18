@@ -688,7 +688,8 @@
                 const drivers = parseCSV(csv);
                 const myDriver = drivers.find(d => d.Mobile === driverData.mobile);
                 
-                if (myDriver && myDriver.TripStatus === 'Active') {
+                // If TripStatus column exists and is not Active, resume is allowed
+                if (myDriver && (!myDriver.TripStatus || myDriver.TripStatus === 'Active')) {
                     resumeTracking();
                 } else {
                     console.log('TripStatus is not Active, clearing saved state');
@@ -755,7 +756,8 @@
                 const drivers = parseCSV(csv);
                 const myDriver = drivers.find(d => d.Mobile === driverData.mobile);
                 
-                if (!myDriver || myDriver.TripStatus !== 'Active') {
+                // Only stop if TripStatus column exists AND is explicitly not Active
+                if (myDriver && myDriver.TripStatus && myDriver.TripStatus !== 'Active') {
                     console.log('TripStatus changed to non-Active, stopping tracking');
                     forceStopTracking();
                     return false;
@@ -849,7 +851,8 @@
                 const drivers = parseCSV(csv);
                 const myDriver = drivers.find(d => d.Mobile === mobile);
                 
-                if (!myDriver || myDriver.TripStatus !== 'Active') {
+                // If TripStatus column exists, check it; otherwise allow tracking
+                if (myDriver && myDriver.TripStatus && myDriver.TripStatus !== 'Active') {
                     alert('Tracking is not enabled for this driver. Please contact admin to activate your trip.');
                     return;
                 }
