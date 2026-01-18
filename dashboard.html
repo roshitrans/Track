@@ -708,6 +708,7 @@
                 const mobile = row['Mobile'] || row['mobile'] || row['phone'];
                 const lat = row['Latitude'] || row['latitude'];
                 const lng = row['Longitude'] || row['longitude'];
+                const tripStatus = row['TripStatus'] || row['tripstatus'] || row['Trip Status'] || row['Status'] || row['status'];
                 
                 const latNum = parseFloat(lat);
                 const lngNum = parseFloat(lng);
@@ -716,6 +717,7 @@
                     !isNaN(latNum) && !isNaN(lngNum) &&
                     latNum >= -90 && latNum <= 90 &&
                     lngNum >= -180 && lngNum <= 180 &&
+                    tripStatus === 'Active' &&
                     !manuallyRemovedDrivers.has(mobile)) {
                     
                     data.push({
@@ -726,7 +728,8 @@
                         Status: row['Status'] || row['status'] || 'Active',
                         Speed: parseFloat(row['Speed'] || row['speed'] || 0),
                         Accuracy: row['Accuracy'] || row['accuracy'] || '-',
-                        Timestamp: row['Timestamp'] || row['timestamp'] || new Date().toISOString()
+                        Timestamp: row['Timestamp'] || row['timestamp'] || new Date().toISOString(),
+                        TripStatus: tripStatus
                     });
                 }
             }
@@ -1052,7 +1055,7 @@
         }
 
         async function removeDriver(mobile) {
-            if (!confirm('Stop tracking this driver?')) {
+            if (!confirm('Stop tracking this driver? This will change their TripStatus to "Stopped" in the system.')) {
                 return;
             }
 
