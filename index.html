@@ -158,6 +158,12 @@
             animation: pulse 2s infinite;
         }
 
+        .status-blocked {
+            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+            color: white;
+            display: none;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.85; }
@@ -352,20 +358,12 @@
             margin-top: 20px;
         }
 
-        /* ============================================
-           MOBILE-ONLY OPTIMIZATIONS
-           Target: 360px - 768px screens
-           Purpose: Eliminate horizontal scroll, improve touch usability
-           NO LOGIC CHANGES - CSS LAYOUT ONLY
-           ============================================ */
         @media (max-width: 768px) {
-            /* Reduce body padding for better screen utilization */
             body {
                 padding: 12px;
                 justify-content: flex-start;
             }
 
-            /* Adjust header sizing for mobile */
             .header {
                 margin-bottom: 20px;
                 padding: 20px 15px;
@@ -381,14 +379,12 @@
                 font-size: 0.9em;
             }
 
-            /* Reduce card padding to maximize content area */
             .card {
                 padding: 20px 16px;
                 border-radius: 16px;
                 margin-bottom: 16px;
             }
 
-            /* Optimize form inputs for mobile touch */
             .form-group {
                 margin-bottom: 16px;
             }
@@ -400,11 +396,10 @@
 
             .form-group input {
                 padding: 14px 12px;
-                font-size: 16px; /* Prevents zoom on iOS */
+                font-size: 16px;
                 border-radius: 10px;
             }
 
-            /* Toggle group mobile optimization */
             .toggle-group {
                 padding: 12px;
                 border-radius: 10px;
@@ -417,7 +412,6 @@
                 margin-right: 10px;
             }
 
-            /* Status indicator mobile sizing */
             .status-indicator {
                 padding: 12px;
                 border-radius: 10px;
@@ -425,28 +419,24 @@
                 font-size: 0.9em;
             }
 
-            /* Button group: Stack vertically on narrow screens */
             .button-group {
                 grid-template-columns: 1fr;
                 gap: 10px;
                 margin-top: 16px;
             }
 
-            /* All buttons full width on mobile */
             .btn {
                 padding: 14px 16px;
                 font-size: 0.9em;
                 letter-spacing: 0.3px;
             }
 
-            /* Cancel, Update, Navigate buttons: override grid-column */
             .btn-cancel,
             .btn-update,
             .btn-navigate {
                 grid-column: span 1;
             }
 
-            /* Stats box mobile optimization */
             .stats-box {
                 padding: 12px;
                 margin-top: 12px;
@@ -458,7 +448,6 @@
                 margin-bottom: 6px;
             }
 
-            /* Info box mobile adjustments */
             .info-box {
                 padding: 12px;
                 margin-top: 16px;
@@ -471,7 +460,6 @@
                 margin-bottom: 6px;
             }
 
-            /* Modal mobile optimization */
             .modal-content {
                 padding: 24px 20px;
                 width: 92%;
@@ -499,7 +487,6 @@
                 width: 100%;
             }
 
-            /* Footer mobile sizing */
             footer {
                 font-size: 0.75em;
                 margin-top: 16px;
@@ -507,7 +494,6 @@
             }
         }
 
-        /* Extra narrow screens (360px and below) */
         @media (max-width: 360px) {
             body {
                 padding: 10px;
@@ -545,6 +531,9 @@
             </div>
             <div class="status-indicator status-active" id="statusActive">
                 🟢 Tracking Active - Updating Every 10s
+            </div>
+            <div class="status-indicator status-blocked" id="statusBlocked">
+                🚫 Tracking Stopped by Admin
             </div>
 
             <div class="form-group">
@@ -603,6 +592,7 @@
                 <p><strong>📱 Important:</strong> Keep this page open in your browser while driving.</p>
                 <p><strong>🔋 Tip:</strong> Connect your phone to charger for best results.</p>
                 <p><strong>📍 Privacy:</strong> Location tracking only active during journey.</p>
+                <p><strong>🛡️ Backend Control:</strong> Admin can stop tracking remotely via system.</p>
             </div>
         </div>
 
@@ -642,9 +632,20 @@
         </div>
     </div>
 
+    <div class="modal" id="adminStoppedModal">
+        <div class="modal-content">
+            <h2>🚫 Tracking Stopped by Admin</h2>
+            <p>Your tracking has been stopped remotely by the system administrator. Please contact your supervisor if you have questions.</p>
+            <button class="btn btn-start" onclick="closeModal('adminStoppedModal')" style="width: 100%;">Close</button>
+        </div>
+    </div>
+
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbxpgeYCfG3SjssGF_u68zRGjwuK2qbCvcXD3amm8NGDIznn6rZhjgjSev7mTOwtafeRQw/exec';
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStfrQtNvP8d63OIsxyEoY04nhGTB2Yn1L0DZVZ0CGENr4W0dXR0mIe5jNwCmVjOcbeKUfsADqp3zj-/pub?gid=0&single=true&output=csv';
+        
         let trackingInterval = null;
+        let statusCheckInterval = null;
         let updateCount = 0;
         let driverData = {};
         let showStats = false;
@@ -665,10 +666,135 @@
                 if (data.isTracking) {
                     driverData = data;
                     updateCount = data.updateCount || 0;
-                    resumeTracking();
+                    checkTripStatusBeforeResume();
                 }
             }
         };
+
+        async function checkTripStatusBeforeResume() {
+            try {
+                const response = await fetch(SHEET_URL + '&_=' + Date.now(), { 
+                    cache: 'no-cache',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    console.error('Failed to fetch trip status');
+                    localStorage.removeItem('driverTracking');
+                    return;
+                }
+                
+                const csv = await response.text();
+                const drivers = parseCSV(csv);
+                const myDriver = drivers.find(d => d.Mobile === driverData.mobile);
+                
+                if (myDriver && myDriver.TripStatus === 'Active') {
+                    resumeTracking();
+                } else {
+                    console.log('TripStatus is not Active, clearing saved state');
+                    localStorage.removeItem('driverTracking');
+                }
+            } catch (error) {
+                console.error('Error checking trip status:', error);
+                localStorage.removeItem('driverTracking');
+            }
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            if (lines.length < 2) return [];
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                
+                const values = [];
+                let currentValue = '';
+                let insideQuotes = false;
+                
+                for (let char of lines[i]) {
+                    if (char === '"') {
+                        insideQuotes = !insideQuotes;
+                    } else if (char === ',' && !insideQuotes) {
+                        values.push(currentValue.trim().replace(/"/g, ''));
+                        currentValue = '';
+                    } else {
+                        currentValue += char;
+                    }
+                }
+                values.push(currentValue.trim().replace(/"/g, ''));
+                
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                });
+                
+                data.push(row);
+            }
+
+            return data;
+        }
+
+        async function checkTripStatus() {
+            if (!driverData.mobile) return true;
+
+            try {
+                const response = await fetch(SHEET_URL + '&_=' + Date.now(), { 
+                    cache: 'no-cache',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    console.error('Failed to fetch trip status');
+                    return true;
+                }
+                
+                const csv = await response.text();
+                const drivers = parseCSV(csv);
+                const myDriver = drivers.find(d => d.Mobile === driverData.mobile);
+                
+                if (!myDriver || myDriver.TripStatus !== 'Active') {
+                    console.log('TripStatus changed to non-Active, stopping tracking');
+                    forceStopTracking();
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error checking trip status:', error);
+                return true;
+            }
+        }
+
+        function forceStopTracking() {
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+                trackingInterval = null;
+            }
+            
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+            }
+
+            document.getElementById('driverName').disabled = false;
+            document.getElementById('driverMobile').disabled = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('updateBtn').style.display = 'none';
+            document.getElementById('statusInactive').style.display = 'none';
+            document.getElementById('statusActive').style.display = 'none';
+            document.getElementById('statusBlocked').style.display = 'block';
+            document.getElementById('statsBox').classList.remove('show');
+
+            localStorage.removeItem('driverTracking');
+            updateCount = 0;
+            
+            showModal('adminStoppedModal');
+        }
 
         function openNavigation() {
             if (!routeOrigin || !routeDestination) {
@@ -694,7 +820,7 @@
             }
         }
 
-        function confirmStart() {
+        async function confirmStart() {
             const name = document.getElementById('driverName').value.trim();
             const mobile = document.getElementById('driverMobile').value.trim();
 
@@ -708,7 +834,31 @@
                 return;
             }
 
-            showModal('startModal');
+            try {
+                const response = await fetch(SHEET_URL + '&_=' + Date.now(), { 
+                    cache: 'no-cache',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    alert('Unable to connect to tracking system. Please try again.');
+                    return;
+                }
+                
+                const csv = await response.text();
+                const drivers = parseCSV(csv);
+                const myDriver = drivers.find(d => d.Mobile === mobile);
+                
+                if (!myDriver || myDriver.TripStatus !== 'Active') {
+                    alert('Tracking is not enabled for this driver. Please contact admin to activate your trip.');
+                    return;
+                }
+                
+                showModal('startModal');
+            } catch (error) {
+                console.error('Error checking trip status:', error);
+                alert('Unable to verify trip status. Please try again.');
+            }
         }
 
         function confirmStop() {
@@ -721,6 +871,11 @@
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('show');
+            
+            if (id === 'adminStoppedModal') {
+                document.getElementById('statusBlocked').style.display = 'none';
+                document.getElementById('statusInactive').style.display = 'block';
+            }
         }
 
         function startTracking() {
@@ -754,7 +909,9 @@
             document.getElementById('statsBox').classList.add('show');
 
             sendLocation();
-            trackingInterval = setInterval(sendLocation, 10000); // 10 seconds
+            trackingInterval = setInterval(sendLocation, 10000);
+            
+            statusCheckInterval = setInterval(checkTripStatus, 5000);
 
             localStorage.setItem('driverTracking', JSON.stringify(driverData));
         }
@@ -774,6 +931,7 @@
             document.getElementById('updateCount').textContent = updateCount;
 
             trackingInterval = setInterval(sendLocation, 10000);
+            statusCheckInterval = setInterval(checkTripStatus, 5000);
         }
 
         function stopTracking() {
@@ -782,6 +940,11 @@
             if (trackingInterval) {
                 clearInterval(trackingInterval);
                 trackingInterval = null;
+            }
+
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
             }
 
             sendLocation(true);
