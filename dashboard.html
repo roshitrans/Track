@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -430,16 +429,6 @@
             display: inline-block;
         }
 
-        .btn-update {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #2C1810;
-        }
-
-        .btn-update:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
-        }
-
         .btn-call {
             background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
             color: white;
@@ -600,14 +589,12 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbxpmBRpfNaLYW_uVJqn1sTTSD9wZqnqflNHPR7Vd2FKY-8N2s_LwJRO5tDMYf_2MR6CJg/exec';
-
         let REFRESH_INTERVAL = 5000;
         let map;
         let markers = {};
         let routes = {};
         let polylines = {};
         let lastPositions = {};
-        let currentDriverData = {};
         let refreshIntervalId = null;
         let countdownIntervalId = null;
         let nextRefreshTime = Date.now();
@@ -686,7 +673,8 @@
                     lastPos.lat, lastPos.lng,
                     driver.lat, driver.lng
                 );
-                return distance > 10;
+                const timeDiff = (Date.now() - lastPos.time) / 1000;
+                return distance > 10 && timeDiff < 60;
             }
             
             return false;
@@ -810,7 +798,6 @@
                     }
                     delete routes[phone];
                     delete lastPositions[phone];
-                    delete currentDriverData[phone];
                 }
             });
 
@@ -831,12 +818,15 @@
         }
 
         function smoothUpdateElement(element, newValue) {
-            if (element.textContent !== newValue) {
+            const currentValue = element.textContent;
+            if (currentValue !== newValue) {
+                element.style.transition = 'none';
                 element.style.transform = 'scale(1.1)';
                 element.textContent = newValue;
                 setTimeout(() => {
+                    element.style.transition = 'all 0.3s';
                     element.style.transform = 'scale(1)';
-                }, 200);
+                }, 50);
             }
         }
 
@@ -846,18 +836,14 @@
             if (drivers.length === 0) {
                 const existingCards = container.querySelectorAll('.driver-card');
                 if (existingCards.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><p>No active drivers currently tracking</p></div>';
+                    container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
                 }
                 return;
             }
 
             drivers.sort((a, b) => new Date(b.lastUpdate) - new Date(a.lastUpdate));
 
-            const newDriverData = {};
-            drivers.forEach(driver => {
-                newDriverData[driver.phone] = driver;
-            });
-
+            const currentPhones = new Set(drivers.map(d => d.phone));
             const existingCards = {};
             container.querySelectorAll('.driver-card').forEach(card => {
                 const phone = card.dataset.phone;
@@ -867,7 +853,7 @@
             });
 
             Object.keys(existingCards).forEach(phone => {
-                if (!newDriverData[phone]) {
+                if (!currentPhones.has(phone)) {
                     const card = existingCards[phone];
                     card.style.transition = 'all 0.3s ease';
                     card.style.opacity = '0';
@@ -877,7 +863,7 @@
                             card.remove();
                         }
                         if (container.querySelectorAll('.driver-card').length === 0) {
-                            container.innerHTML = '<div class="empty-state"><p>No active drivers currently tracking</p></div>';
+                            container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
                         }
                     }, 300);
                     delete existingCards[phone];
@@ -940,13 +926,12 @@
                         </div>
                         <div class="driver-details">
                             <div>⏰ <span class="${timeAgo.fresh ? 'time-ago' : 'time-stale'}">${timeAgo.text}</span></div>
-                            <div>📍 ${driver.lat.toFixed(6)}, ${driver.lng.toFixed(6)}</div>
+                            <div>📍 Location updated</div>
                         </div>
                         <div class="driver-actions">
-                            <button class="action-btn btn-update" onclick="refreshData()">Update</button>
-                            <button class="action-btn btn-call" onclick="callDriver('${phone}')">Call</button>
-                            <button class="action-btn btn-whatsapp" onclick="whatsappDriver('${phone}')">WhatsApp</button>
-                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.lat}, ${driver.lng}, '${phone}')">View on Map</button>
+                            <a href="tel:${driver.phone}" class="action-btn btn-call">Call</a>
+                            <a href="https://wa.me/91${driver.phone}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
+                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.lat}, ${driver.lng}, '${driver.phone}')">View on Map</button>
                         </div>
                     `;
                     
@@ -958,26 +943,6 @@
                     }, 50);
                 }
             });
-
-            currentDriverData = newDriverData;
-        }
-
-        function callDriver(phone) {
-            if (!phone) {
-                alert('Driver phone number not available');
-                return;
-            }
-            window.location.href = `tel:${phone}`;
-        }
-
-        function whatsappDriver(phone) {
-            if (!phone) {
-                alert('Driver phone number not available');
-                return;
-            }
-            const cleanNumber = phone.replace(/\D/g, '');
-            const formattedNumber = cleanNumber.startsWith('91') ? cleanNumber : `91${cleanNumber}`;
-            window.open(`https://wa.me/${formattedNumber}`, '_blank');
         }
 
         function focusOnDriver(lat, lng, phone) {
@@ -994,7 +959,7 @@
             
             smoothUpdateElement(document.getElementById('activeCount'), activeDrivers.toString());
             smoothUpdateElement(document.getElementById('movingCount'), movingDrivers.toString());
-            smoothUpdateElement(document.getElementById('totalCount'), drivers.length.toString());
+            smoothUpdateElement(document.getElementById('totalCount'), activeDrivers.toString());
             
             const now = new Date();
             document.getElementById('lastUpdateTime').textContent = 
@@ -1017,9 +982,7 @@
                 
                 const data = await response.json();
                 
-                const activeDrivers = data.filter(driver => 
-                    driver.status && driver.status.toUpperCase() === 'ACTIVE'
-                );
+                const activeDrivers = data.filter(driver => driver.status === 'ACTIVE');
 
                 updateStats(activeDrivers);
                 updateMap(activeDrivers);
@@ -1052,5 +1015,4 @@
     </script>
 </body>
 </html>
-
 
