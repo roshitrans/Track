@@ -621,24 +621,14 @@
         </div>
     </div>
 
-    <div class="modal" id="sessionEndedModal">
-        <div class="modal-content">
-            <h2>⚠️ Session Ended</h2>
-            <p id="sessionEndedMessage">Your tracking session has been terminated.</p>
-            <button class="btn btn-start" onclick="closeModal('sessionEndedModal')" style="width: 100%;">OK</button>
-        </div>
-    </div>
-
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbxpmBRpfNaLYW_uVJqn1sTTSD9wZqnqflNHPR7Vd2FKY-8N2s_LwJRO5tDMYf_2MR6CJg/exec';
-        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
         let trackingInterval = null;
         let updateCount = 0;
         let driverData = {};
         let showStats = false;
         let routeOrigin = '';
         let routeDestination = '';
-        let sessionStartTime = null;
 
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -651,17 +641,10 @@
                 document.getElementById('driverName').value = data.name || '';
                 document.getElementById('driverMobile').value = data.mobile || '';
                 
-                if (data.isTracking && data.sessionStartTime) {
-                    const elapsed = Date.now() - new Date(data.sessionStartTime).getTime();
-                    
-                    if (elapsed >= TWENTY_FOUR_HOURS) {
-                        terminateSession('Your tracking session exceeded 24 hours and has been automatically stopped.');
-                    } else {
-                        driverData = data;
-                        updateCount = data.updateCount || 0;
-                        sessionStartTime = new Date(data.sessionStartTime);
-                        resumeTracking();
-                    }
+                if (data.isTracking) {
+                    driverData = data;
+                    updateCount = data.updateCount || 0;
+                    resumeTracking();
                 }
             }
         };
@@ -730,31 +713,67 @@
             const name = document.getElementById('driverName').value.trim();
             const mobile = document.getElementById('driverMobile').value.trim();
 
-            sessionStartTime = new Date();
-            driverData = {
-                name: name,
-                mobile: mobile,
-                isTracking: true,
-                updateCount: 0,
-                sessionStartTime: sessionStartTime.toISOString()
-            };
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const data = {
+                        action: 'start',
+                        name: name,
+                        mobile: mobile,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
 
-            document.getElementById('driverName').disabled = true;
-            document.getElementById('driverMobile').disabled = true;
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('cancelBtn').style.display = 'block';
-            document.getElementById('cancelBtn').disabled = false;
-            document.getElementById('updateBtn').style.display = 'block';
-            document.getElementById('updateBtn').disabled = false;
-            document.getElementById('statusInactive').style.display = 'none';
-            document.getElementById('statusActive').style.display = 'block';
-            document.getElementById('statsBox').classList.add('show');
+                    fetch(API_URL, {
+                        redirect: 'follow',
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8',
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            driverData = {
+                                name: name,
+                                mobile: mobile,
+                                isTracking: true,
+                                updateCount: 0
+                            };
 
-            sendLocation('start');
-            trackingInterval = setInterval(sendLocation, 10000);
+                            document.getElementById('driverName').disabled = true;
+                            document.getElementById('driverMobile').disabled = true;
+                            document.getElementById('startBtn').disabled = true;
+                            document.getElementById('stopBtn').disabled = false;
+                            document.getElementById('cancelBtn').style.display = 'block';
+                            document.getElementById('cancelBtn').disabled = false;
+                            document.getElementById('updateBtn').style.display = 'block';
+                            document.getElementById('updateBtn').disabled = false;
+                            document.getElementById('statusInactive').style.display = 'none';
+                            document.getElementById('statusActive').style.display = 'block';
+                            document.getElementById('statsBox').classList.add('show');
 
-            localStorage.setItem('driverTracking', JSON.stringify(driverData));
+                            localStorage.setItem('driverTracking', JSON.stringify(driverData));
+                            trackingInterval = setInterval(sendLocation, 10000);
+                        } else {
+                            alert('Failed to start tracking. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error starting tracking:', error);
+                        alert('Failed to start tracking. Please check your connection.');
+                    });
+                },
+                function(error) {
+                    console.error('Geolocation error:', error);
+                    alert('Unable to get your location. Please enable location services.');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
         }
 
         function resumeTracking() {
@@ -782,33 +801,30 @@
                 trackingInterval = null;
             }
 
-            sendLocation('stop');
+            const data = {
+                action: 'stop',
+                name: driverData.name,
+                mobile: driverData.mobile
+            };
 
-            resetUI();
-            
-            showModal('thankYouModal');
-        }
-
-        function cancelJourney() {
-            if (confirm('Cancel journey? This will stop tracking immediately.')) {
-                stopTracking();
-            }
-        }
-
-        function forceUpdate() {
-            sendLocation('update');
-        }
-
-        function terminateSession(message) {
-            if (trackingInterval) {
-                clearInterval(trackingInterval);
-                trackingInterval = null;
-            }
-
-            resetUI();
-
-            document.getElementById('sessionEndedMessage').textContent = message;
-            showModal('sessionEndedModal');
+            fetch(API_URL, {
+                redirect: 'follow',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                resetUI();
+                showModal('thankYouModal');
+            })
+            .catch(error => {
+                console.error('Error stopping tracking:', error);
+                resetUI();
+                showModal('thankYouModal');
+            });
         }
 
         function resetUI() {
@@ -824,39 +840,30 @@
 
             localStorage.removeItem('driverTracking');
             updateCount = 0;
-            sessionStartTime = null;
+            driverData = {};
         }
 
-        function check24HourTimeout() {
-            if (!sessionStartTime) return false;
-            
-            const elapsed = Date.now() - sessionStartTime.getTime();
-            if (elapsed >= TWENTY_FOUR_HOURS) {
-                if (trackingInterval) {
-                    clearInterval(trackingInterval);
-                    trackingInterval = null;
-                }
-                terminateSession('Your tracking session exceeded 24 hours and has been automatically stopped.');
-                return true;
+        function cancelJourney() {
+            if (confirm('Cancel journey? This will stop tracking immediately.')) {
+                stopTracking();
             }
-            return false;
         }
 
-        function sendLocation(action = 'update') {
-            if (check24HourTimeout()) return;
+        function forceUpdate() {
+            sendLocation();
+        }
 
+        function sendLocation() {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
                     const data = {
-                        action: action,
+                        action: 'update',
                         name: driverData.name,
                         mobile: driverData.mobile,
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
-                        timestamp: new Date().toISOString(),
                         speed: position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0,
-                        accuracy: Math.round(position.coords.accuracy),
-                        sessionStartTime: sessionStartTime ? sessionStartTime.toISOString() : new Date().toISOString()
+                        accuracy: Math.round(position.coords.accuracy)
                     };
 
                     fetch(API_URL, {
@@ -869,34 +876,29 @@
                     })
                     .then(response => response.json())
                     .then(result => {
-                        if (result.success === false && result.error === 'row_not_found') {
-                            terminateSession('Your tracking session was ended by an administrator.');
-                            return;
-                        }
-
-                        if (result.success === true && result.session_expired === true) {
-                            terminateSession('Your tracking session exceeded 24 hours and has been automatically stopped.');
-                            return;
-                        }
-
-                        if (result.success === true) {
-                            if (action === 'update') {
-                                updateCount++;
-                                document.getElementById('updateCount').textContent = updateCount;
-                                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
-                                
-                                if (showStats) {
-                                    document.getElementById('speedValue').textContent = data.speed + ' km/h';
-                                    document.getElementById('accuracyValue').textContent = data.accuracy + ' meters';
-                                }
-                                
-                                driverData.updateCount = updateCount;
-                                localStorage.setItem('driverTracking', JSON.stringify(driverData));
+                        if (result.status === 'success') {
+                            updateCount++;
+                            document.getElementById('updateCount').textContent = updateCount;
+                            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
+                            
+                            if (showStats) {
+                                document.getElementById('speedValue').textContent = data.speed + ' km/h';
+                                document.getElementById('accuracyValue').textContent = data.accuracy + ' meters';
                             }
+                            
+                            driverData.updateCount = updateCount;
+                            localStorage.setItem('driverTracking', JSON.stringify(driverData));
+                        } else if (result.status === 'row_not_found') {
+                            if (trackingInterval) {
+                                clearInterval(trackingInterval);
+                                trackingInterval = null;
+                            }
+                            alert('Tracking stopped. Contact Admin - your entry was removed from the system.');
+                            resetUI();
                         }
                     })
                     .catch(error => {
-                        console.error('Error:', error);
+                        console.error('Error sending location:', error);
                     });
                 },
                 function(error) {
