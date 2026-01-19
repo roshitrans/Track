@@ -557,12 +557,6 @@
             <div class="map-header">
                 <h2>🗺️ Live Tracking Map</h2>
                 <div class="map-controls">
-                    <select class="interval-selector" id="intervalSelector" onchange="changeRefreshInterval()">
-                        <option value="3000">Ultra Fast (3s)</option>
-                        <option value="5000" selected>Fast (5s)</option>
-                        <option value="10000">Normal (10s)</option>
-                        <option value="30000">Slow (30s)</option>
-                    </select>
                     <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
                 </div>
             </div>
@@ -588,8 +582,9 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbxpmBRpfNaLYW_uVJqn1sTTSD9wZqnqflNHPR7Vd2FKY-8N2s_LwJRO5tDMYf_2MR6CJg/exec';
-        let REFRESH_INTERVAL = 5000;
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxpmBRpfNaLYW_uVJqn1sTTSD9wZqnqflNHPR7Vd2FKY-8N2s_LwJRO5tDMYf_2MR6CJg/exec';
+        const REFRESH_INTERVAL = 5000;
+
         let map;
         let markers = {};
         let routes = {};
@@ -614,23 +609,10 @@
 
         function initMap() {
             map = L.map('map').setView([20.5937, 78.9629], 5);
-
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 19
             }).addTo(map);
-        }
-
-        function changeRefreshInterval() {
-            const selector = document.getElementById('intervalSelector');
-            REFRESH_INTERVAL = parseInt(selector.value);
-            
-            if (refreshIntervalId) {
-                clearInterval(refreshIntervalId);
-            }
-            startAutoRefresh();
-            
-            localStorage.setItem('refreshInterval', REFRESH_INTERVAL);
         }
 
         function startAutoRefresh() {
@@ -642,7 +624,6 @@
             if (countdownIntervalId) {
                 clearInterval(countdownIntervalId);
             }
-            
             countdownIntervalId = setInterval(() => {
                 const remaining = Math.max(0, Math.ceil((nextRefreshTime - Date.now()) / 1000));
                 document.getElementById('countdown').textContent = remaining + 's';
@@ -655,68 +636,70 @@
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
             const Δλ = (lon2 - lon1) * Math.PI / 180;
-
             const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
                     Math.cos(φ1) * Math.cos(φ2) *
                     Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
             return R * c;
         }
 
         function isMoving(driver) {
-            const phone = driver.phone;
+            const phone = driver['Phone Number'];
             const lastPos = lastPositions[phone];
-            
             if (lastPos) {
                 const distance = calculateDistance(
                     lastPos.lat, lastPos.lng,
-                    driver.lat, driver.lng
+                    driver.Lat, driver.Lng
                 );
-                const timeDiff = (Date.now() - lastPos.time) / 1000;
-                return distance > 10 && timeDiff < 60;
+                return distance > 10;
             }
-            
             return false;
         }
 
         function animateMarker(marker, newLatLng, duration = 1000) {
             const startLatLng = marker.getLatLng();
             const startTime = Date.now();
-
             function animate() {
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / duration, 1);
-                
                 const easeProgress = progress < 0.5 
                     ? 2 * progress * progress 
                     : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-
                 const currentLat = startLatLng.lat + (newLatLng.lat - startLatLng.lat) * easeProgress;
                 const currentLng = startLatLng.lng + (newLatLng.lng - startLatLng.lng) * easeProgress;
-
                 marker.setLatLng([currentLat, currentLng]);
-
                 if (progress < 1) {
                     requestAnimationFrame(animate);
                 }
             }
-
             animate();
         }
 
         function updateMap(drivers) {
             const bounds = [];
-            const currentPhones = new Set(drivers.map(d => d.phone));
+            const currentPhones = new Set(drivers.map(d => d['Phone Number']));
+
+            Object.keys(markers).forEach(phone => {
+                if (!currentPhones.has(phone)) {
+                    if (markers[phone]) {
+                        map.removeLayer(markers[phone]);
+                        delete markers[phone];
+                    }
+                    if (polylines[phone]) {
+                        map.removeLayer(polylines[phone]);
+                        delete polylines[phone];
+                    }
+                    delete routes[phone];
+                    delete lastPositions[phone];
+                }
+            });
 
             drivers.forEach(driver => {
-                const lat = driver.lat;
-                const lng = driver.lng;
-                const phone = driver.phone;
+                const lat = driver.Lat;
+                const lng = driver.Lng;
+                const phone = driver['Phone Number'];
                 
-                if (isNaN(lat) || isNaN(lng) || 
-                    lat < -90 || lat > 90 || 
-                    lng < -180 || lng > 180) {
+                if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
                     return;
                 }
 
@@ -739,12 +722,12 @@
                     if (polylines[phone]) {
                         polylines[phone].setLatLngs(routes[phone]);
                         polylines[phone].setStyle({
-                            color: moving ? '#2196F3' : '#9E9E9E',
+                            color: moving ? '#2196F3' : '#4CAF50',
                             weight: moving ? 4 : 3
                         });
                     } else {
                         polylines[phone] = L.polyline(routes[phone], {
-                            color: moving ? '#2196F3' : '#9E9E9E',
+                            color: moving ? '#2196F3' : '#4CAF50',
                             weight: moving ? 4 : 3,
                             opacity: 0.8,
                             smoothFactor: 1
@@ -766,7 +749,6 @@
                     const oldLatLng = markers[phone].getLatLng();
                     const newLatLng = L.latLng(lat, lng);
                     const distance = calculateDistance(oldLatLng.lat, oldLatLng.lng, lat, lng);
-                    
                     if (distance > 5) {
                         animateMarker(markers[phone], newLatLng, 1000);
                     }
@@ -775,30 +757,15 @@
                     markers[phone] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
                 }
 
-                const time = new Date(driver.lastUpdate).toLocaleString('en-IN');
-                const movingStatus = moving ? '🔵 Moving' : '⚪ Stationary';
+                const time = new Date(driver['Last Update Time']).toLocaleString('en-IN');
+                const movingStatus = moving ? '🔵 Moving' : '⚪ Active';
                 
                 markers[phone].bindPopup(`
-                    <strong>${driver.name}</strong><br>
-                    📱 ${driver.phone}<br>
+                    <strong>${driver['Driver Name']}</strong><br>
+                    📱 ${driver['Phone Number']}<br>
                     ${movingStatus}<br>
                     ⏰ ${time}
                 `);
-            });
-
-            Object.keys(markers).forEach(phone => {
-                if (!currentPhones.has(phone)) {
-                    if (markers[phone]) {
-                        map.removeLayer(markers[phone]);
-                        delete markers[phone];
-                    }
-                    if (polylines[phone]) {
-                        map.removeLayer(polylines[phone]);
-                        delete polylines[phone];
-                    }
-                    delete routes[phone];
-                    delete lastPositions[phone];
-                }
             });
 
             if (bounds.length > 0 && Object.keys(markers).length === drivers.length) {
@@ -810,7 +777,6 @@
             const now = Date.now();
             const time = new Date(timestamp).getTime();
             const diff = Math.floor((now - time) / 1000);
-
             if (diff < 10) return { text: 'Just now', fresh: true };
             if (diff < 60) return { text: `${diff}s ago`, fresh: true };
             if (diff < 3600) return { text: `${Math.floor(diff / 60)}m ago`, fresh: diff < 300 };
@@ -818,15 +784,12 @@
         }
 
         function smoothUpdateElement(element, newValue) {
-            const currentValue = element.textContent;
-            if (currentValue !== newValue) {
-                element.style.transition = 'none';
+            if (element.textContent !== newValue) {
                 element.style.transform = 'scale(1.1)';
                 element.textContent = newValue;
                 setTimeout(() => {
-                    element.style.transition = 'all 0.3s';
                     element.style.transform = 'scale(1)';
-                }, 50);
+                }, 200);
             }
         }
 
@@ -841,32 +804,28 @@
                 return;
             }
 
-            drivers.sort((a, b) => new Date(b.lastUpdate) - new Date(a.lastUpdate));
+            drivers.sort((a, b) => new Date(b['Last Update Time']) - new Date(a['Last Update Time']));
 
-            const currentPhones = new Set(drivers.map(d => d.phone));
+            const newPhones = new Set(drivers.map(d => d['Phone Number']));
             const existingCards = {};
             container.querySelectorAll('.driver-card').forEach(card => {
                 const phone = card.dataset.phone;
                 if (phone) {
-                    existingCards[phone] = card;
-                }
-            });
-
-            Object.keys(existingCards).forEach(phone => {
-                if (!currentPhones.has(phone)) {
-                    const card = existingCards[phone];
-                    card.style.transition = 'all 0.3s ease';
-                    card.style.opacity = '0';
-                    card.style.transform = 'translateX(-30px)';
-                    setTimeout(() => {
-                        if (card.parentNode) {
-                            card.remove();
-                        }
-                        if (container.querySelectorAll('.driver-card').length === 0) {
-                            container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
-                        }
-                    }, 300);
-                    delete existingCards[phone];
+                    if (!newPhones.has(phone)) {
+                        card.style.transition = 'all 0.3s ease';
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateX(-30px)';
+                        setTimeout(() => {
+                            if (card.parentNode) {
+                                card.remove();
+                            }
+                            if (container.querySelectorAll('.driver-card').length === 0) {
+                                container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                            }
+                        }, 300);
+                    } else {
+                        existingCards[phone] = card;
+                    }
                 }
             });
 
@@ -876,15 +835,14 @@
             }
 
             drivers.forEach(driver => {
-                const phone = driver.phone;
+                const phone = driver['Phone Number'];
                 const moving = isMoving(driver);
-                const timeAgo = getTimeAgo(driver.lastUpdate);
+                const timeAgo = getTimeAgo(driver['Last Update Time']);
 
                 if (existingCards[phone]) {
                     const card = existingCards[phone];
                     const oldClass = card.className;
                     const newClass = `driver-card ${moving ? 'moving' : ''}`;
-                    
                     if (oldClass !== newClass) {
                         card.className = newClass;
                     }
@@ -892,7 +850,6 @@
                     const statusBadge = card.querySelector('.status-badge');
                     const newStatusClass = moving ? 'status-moving' : 'status-active';
                     const newStatusText = moving ? '🔵 Moving' : 'Active';
-                    
                     if (statusBadge.className !== `status-badge ${newStatusClass}`) {
                         statusBadge.className = `status-badge ${newStatusClass}`;
                         statusBadge.textContent = newStatusText;
@@ -905,7 +862,6 @@
                             timeElement.textContent = timeAgo.text;
                         }
                     }
-
                 } else {
                     const newCard = document.createElement('div');
                     newCard.className = `driver-card ${moving ? 'moving' : ''}`;
@@ -917,8 +873,8 @@
                     newCard.innerHTML = `
                         <div class="driver-header">
                             <div class="driver-info">
-                                <h3>${driver.name}</h3>
-                                <p>📱 ${driver.phone}</p>
+                                <h3>${driver['Driver Name']}</h3>
+                                <p>📱 ${driver['Phone Number']}</p>
                             </div>
                             <span class="status-badge ${moving ? 'status-moving' : 'status-active'}">
                                 ${moving ? '🔵 Moving' : 'Active'}
@@ -926,17 +882,16 @@
                         </div>
                         <div class="driver-details">
                             <div>⏰ <span class="${timeAgo.fresh ? 'time-ago' : 'time-stale'}">${timeAgo.text}</span></div>
-                            <div>📍 Location updated</div>
+                            <div>📍 Location: ${driver.Lat.toFixed(5)}, ${driver.Lng.toFixed(5)}</div>
                         </div>
                         <div class="driver-actions">
-                            <a href="tel:${driver.phone}" class="action-btn btn-call">Call</a>
-                            <a href="https://wa.me/91${driver.phone}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
-                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.lat}, ${driver.lng}, '${driver.phone}')">View on Map</button>
+                            <a href="tel:${phone}" class="action-btn btn-call">Call</a>
+                            <a href="https://wa.me/91${phone}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
+                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.Lat}, ${driver.Lng}, '${phone}')">View on Map</button>
                         </div>
                     `;
                     
                     container.appendChild(newCard);
-                    
                     setTimeout(() => {
                         newCard.style.opacity = '1';
                         newCard.style.transform = 'translateY(0)';
@@ -971,7 +926,7 @@
 
         async function refreshData() {
             try {
-                const response = await fetch(BACKEND_URL + '?_=' + Date.now(), { 
+                const response = await fetch(APPS_SCRIPT_URL + '?_=' + Date.now(), { 
                     cache: 'no-cache',
                     mode: 'cors'
                 });
@@ -981,8 +936,7 @@
                 }
                 
                 const data = await response.json();
-                
-                const activeDrivers = data.filter(driver => driver.status === 'ACTIVE');
+                const activeDrivers = data.filter(d => d['Tracking State'] === 'ACTIVE');
 
                 updateStats(activeDrivers);
                 updateMap(activeDrivers);
@@ -993,12 +947,6 @@
                 console.error('Error fetching data:', error);
                 document.getElementById('activeStatus').textContent = 'Connection error';
             }
-        }
-
-        const savedInterval = localStorage.getItem('refreshInterval');
-        if (savedInterval) {
-            REFRESH_INTERVAL = parseInt(savedInterval);
-            document.getElementById('intervalSelector').value = REFRESH_INTERVAL;
         }
 
         window.onload = function() {
