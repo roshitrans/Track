@@ -158,12 +158,6 @@
             animation: pulse 2s infinite;
         }
 
-        .status-blocked {
-            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
-            color: white;
-            display: none;
-        }
-
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.85; }
@@ -532,9 +526,6 @@
             <div class="status-indicator status-active" id="statusActive">
                 🟢 Tracking Active - Updating Every 10s
             </div>
-            <div class="status-indicator status-blocked" id="statusBlocked">
-                🚫 Tracking Stopped by Admin
-            </div>
 
             <div class="form-group">
                 <label>Driver Name</label>
@@ -592,7 +583,6 @@
                 <p><strong>📱 Important:</strong> Keep this page open in your browser while driving.</p>
                 <p><strong>🔋 Tip:</strong> Connect your phone to charger for best results.</p>
                 <p><strong>📍 Privacy:</strong> Location tracking only active during journey.</p>
-                <p><strong>🛡️ Backend Control:</strong> Admin can stop tracking remotely via system.</p>
             </div>
         </div>
 
@@ -631,24 +621,24 @@
         </div>
     </div>
 
-    <div class="modal" id="adminStoppedModal">
+    <div class="modal" id="sessionEndedModal">
         <div class="modal-content">
-            <h2>🚫 Tracking Stopped by Admin</h2>
-            <p>Your tracking has been stopped remotely by the system administrator. Please contact your supervisor if you have questions.</p>
-            <button class="btn btn-start" onclick="closeModal('adminStoppedModal')" style="width: 100%;">Close</button>
+            <h2>⚠️ Session Ended</h2>
+            <p id="sessionEndedMessage">Your tracking session has been terminated.</p>
+            <button class="btn btn-start" onclick="closeModal('sessionEndedModal')" style="width: 100%;">OK</button>
         </div>
     </div>
 
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbxpmBRpfNaLYW_uVJqn1sTTSD9wZqnqflNHPR7Vd2FKY-8N2s_LwJRO5tDMYf_2MR6CJg/exec';
-        
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
         let trackingInterval = null;
         let updateCount = 0;
         let driverData = {};
         let showStats = false;
         let routeOrigin = '';
         let routeDestination = '';
-        let isTracking = false;
+        let sessionStartTime = null;
 
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -657,60 +647,24 @@
 
             const saved = localStorage.getItem('driverTracking');
             if (saved) {
-                try {
-                    const data = JSON.parse(saved);
-                    if (data.isTracking && data.mobile && data.name) {
+                const data = JSON.parse(saved);
+                document.getElementById('driverName').value = data.name || '';
+                document.getElementById('driverMobile').value = data.mobile || '';
+                
+                if (data.isTracking && data.sessionStartTime) {
+                    const elapsed = Date.now() - new Date(data.sessionStartTime).getTime();
+                    
+                    if (elapsed >= TWENTY_FOUR_HOURS) {
+                        terminateSession('Your tracking session exceeded 24 hours and has been automatically stopped.');
+                    } else {
                         driverData = data;
                         updateCount = data.updateCount || 0;
-                        document.getElementById('driverName').value = data.name || '';
-                        document.getElementById('driverMobile').value = data.mobile || '';
+                        sessionStartTime = new Date(data.sessionStartTime);
                         resumeTracking();
-                    } else {
-                        localStorage.removeItem('driverTracking');
-                        resetToIdleState();
                     }
-                } catch (e) {
-                    localStorage.removeItem('driverTracking');
-                    resetToIdleState();
                 }
-            } else {
-                resetToIdleState();
             }
         };
-
-        function resetToIdleState() {
-            isTracking = false;
-
-            document.getElementById('driverName').value = '';
-            document.getElementById('driverMobile').value = '';
-            document.getElementById('driverName').disabled = false;
-            document.getElementById('driverMobile').disabled = false;
-
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('cancelBtn').style.display = 'none';
-            document.getElementById('updateBtn').style.display = 'none';
-
-            document.getElementById('statusInactive').style.display = 'block';
-            document.getElementById('statusActive').style.display = 'none';
-            document.getElementById('statusBlocked').style.display = 'none';
-
-            document.getElementById('statsBox').classList.remove('show');
-            document.getElementById('updateCount').textContent = '0';
-            document.getElementById('lastUpdate').textContent = '-';
-            document.getElementById('speedValue').textContent = '- km/h';
-            document.getElementById('accuracyValue').textContent = '- meters';
-
-            driverData = {};
-            updateCount = 0;
-
-            if (showStats) {
-                document.getElementById('toggleStats').classList.remove('active');
-                document.getElementById('speedStat').style.display = 'none';
-                document.getElementById('accuracyStat').style.display = 'none';
-                showStats = false;
-            }
-        }
 
         function openNavigation() {
             if (!routeOrigin || !routeDestination) {
@@ -736,7 +690,7 @@
             }
         }
 
-        async function confirmStart() {
+        function confirmStart() {
             const name = document.getElementById('driverName').value.trim();
             const mobile = document.getElementById('driverMobile').value.trim();
 
@@ -763,11 +717,6 @@
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('show');
-            
-            if (id === 'adminStoppedModal') {
-                document.getElementById('statusBlocked').style.display = 'none';
-                document.getElementById('statusInactive').style.display = 'block';
-            }
         }
 
         function startTracking() {
@@ -781,17 +730,13 @@
             const name = document.getElementById('driverName').value.trim();
             const mobile = document.getElementById('driverMobile').value.trim();
 
-            if (!name || !mobile) {
-                alert('Name and mobile are required');
-                return;
-            }
-
-            isTracking = true;
+            sessionStartTime = new Date();
             driverData = {
                 name: name,
                 mobile: mobile,
                 isTracking: true,
-                updateCount: 0
+                updateCount: 0,
+                sessionStartTime: sessionStartTime.toISOString()
             };
 
             document.getElementById('driverName').disabled = true;
@@ -806,17 +751,13 @@
             document.getElementById('statusActive').style.display = 'block';
             document.getElementById('statsBox').classList.add('show');
 
-            sendLocationToBackend('start');
-            
-            if (trackingInterval) clearInterval(trackingInterval);
-            trackingInterval = setInterval(() => sendLocationToBackend('update'), 10000);
+            sendLocation('start');
+            trackingInterval = setInterval(sendLocation, 10000);
 
             localStorage.setItem('driverTracking', JSON.stringify(driverData));
         }
 
         function resumeTracking() {
-            isTracking = true;
-
             document.getElementById('driverName').disabled = true;
             document.getElementById('driverMobile').disabled = true;
             document.getElementById('startBtn').disabled = true;
@@ -830,8 +771,7 @@
             document.getElementById('statsBox').classList.add('show');
             document.getElementById('updateCount').textContent = updateCount;
 
-            if (trackingInterval) clearInterval(trackingInterval);
-            trackingInterval = setInterval(() => sendLocationToBackend('update'), 10000);
+            trackingInterval = setInterval(sendLocation, 10000);
         }
 
         function stopTracking() {
@@ -842,12 +782,9 @@
                 trackingInterval = null;
             }
 
-            sendLocationToBackend('stop');
+            sendLocation('stop');
 
-            localStorage.removeItem('driverTracking');
-            isTracking = false;
-
-            resetToIdleState();
+            resetUI();
             
             showModal('thankYouModal');
         }
@@ -859,73 +796,111 @@
         }
 
         function forceUpdate() {
-            sendLocationToBackend('update');
+            sendLocation('update');
         }
 
-        function sendLocationToBackend(action) {
-            if (!isTracking && action !== 'stop') {
-                return;
+        function terminateSession(message) {
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+                trackingInterval = null;
             }
 
-            const name = driverData.name;
-            const mobile = driverData.mobile;
+            resetUI();
 
-            if (!name || !mobile) {
-                return;
+            document.getElementById('sessionEndedMessage').textContent = message;
+            showModal('sessionEndedModal');
+        }
+
+        function resetUI() {
+            document.getElementById('driverName').disabled = false;
+            document.getElementById('driverMobile').disabled = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('updateBtn').style.display = 'none';
+            document.getElementById('statusInactive').style.display = 'block';
+            document.getElementById('statusActive').style.display = 'none';
+            document.getElementById('statsBox').classList.remove('show');
+
+            localStorage.removeItem('driverTracking');
+            updateCount = 0;
+            sessionStartTime = null;
+        }
+
+        function check24HourTimeout() {
+            if (!sessionStartTime) return false;
+            
+            const elapsed = Date.now() - sessionStartTime.getTime();
+            if (elapsed >= TWENTY_FOUR_HOURS) {
+                if (trackingInterval) {
+                    clearInterval(trackingInterval);
+                    trackingInterval = null;
+                }
+                terminateSession('Your tracking session exceeded 24 hours and has been automatically stopped.');
+                return true;
             }
+            return false;
+        }
+
+        function sendLocation(action = 'update') {
+            if (check24HourTimeout()) return;
 
             navigator.geolocation.getCurrentPosition(
                 function(position) {
-                    const payload = {
+                    const data = {
                         action: action,
-                        name: name,
-                        mobile: mobile,
+                        name: driverData.name,
+                        mobile: driverData.mobile,
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
+                        timestamp: new Date().toISOString(),
                         speed: position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0,
-                        accuracy: Math.round(position.coords.accuracy)
+                        accuracy: Math.round(position.coords.accuracy),
+                        sessionStartTime: sessionStartTime ? sessionStartTime.toISOString() : new Date().toISOString()
                     };
 
                     fetch(API_URL, {
                         redirect: 'follow',
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
+                            'Content-Type': 'text/plain;charset=utf-8',
                         },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(data)
                     })
                     .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            if (action === 'update' && isTracking) {
+                    .then(result => {
+                        if (result.success === false && result.error === 'row_not_found') {
+                            terminateSession('Your tracking session was ended by an administrator.');
+                            return;
+                        }
+
+                        if (result.success === true && result.session_expired === true) {
+                            terminateSession('Your tracking session exceeded 24 hours and has been automatically stopped.');
+                            return;
+                        }
+
+                        if (result.success === true) {
+                            if (action === 'update') {
                                 updateCount++;
                                 document.getElementById('updateCount').textContent = updateCount;
                                 document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
                                 
                                 if (showStats) {
-                                    document.getElementById('speedValue').textContent = payload.speed + ' km/h';
-                                    document.getElementById('accuracyValue').textContent = payload.accuracy + ' meters';
+                                    document.getElementById('speedValue').textContent = data.speed + ' km/h';
+                                    document.getElementById('accuracyValue').textContent = data.accuracy + ' meters';
                                 }
                                 
                                 driverData.updateCount = updateCount;
                                 localStorage.setItem('driverTracking', JSON.stringify(driverData));
                             }
-
-                            if (data.session_expired) {
-                                handleSessionExpired();
-                            }
-                        } else {
-                            if (data.error === 'row_not_found') {
-                                handleRowNotFound();
-                            }
                         }
                     })
                     .catch(error => {
-                        console.error('Backend error:', error);
+                        console.error('Error:', error);
                     });
                 },
                 function(error) {
-                    console.error('GPS error:', error);
+                    console.error('Geolocation error:', error);
                 },
                 {
                     enableHighAccuracy: true,
@@ -933,36 +908,6 @@
                     maximumAge: 0
                 }
             );
-        }
-
-        function handleSessionExpired() {
-            if (trackingInterval) {
-                clearInterval(trackingInterval);
-                trackingInterval = null;
-            }
-
-            localStorage.removeItem('driverTracking');
-            isTracking = false;
-
-            resetToIdleState();
-
-            document.getElementById('statusBlocked').style.display = 'block';
-            document.getElementById('statusInactive').style.display = 'none';
-            showModal('adminStoppedModal');
-        }
-
-        function handleRowNotFound() {
-            if (trackingInterval) {
-                clearInterval(trackingInterval);
-                trackingInterval = null;
-            }
-
-            localStorage.removeItem('driverTracking');
-            isTracking = false;
-
-            resetToIdleState();
-
-            alert('Driver record not found. Please contact administrator.');
         }
     </script>
 </body>
