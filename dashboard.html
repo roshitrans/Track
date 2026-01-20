@@ -311,10 +311,6 @@
             transition: background 0.5s ease;
         }
 
-        .driver-card.stopped::before {
-            background: linear-gradient(180deg, #757575 0%, #616161 100%);
-        }
-
         .driver-card.moving::before {
             background: linear-gradient(180deg, #2196F3 0%, #1976D2 100%);
             animation: pulse 1s infinite;
@@ -374,11 +370,6 @@
             animation: pulse 1.5s infinite;
         }
 
-        .status-stopped {
-            background: linear-gradient(180deg, #757575 0%, #616161 100%);
-            color: white;
-        }
-
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
@@ -429,16 +420,6 @@
             display: inline-block;
         }
 
-        .btn-update {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #2C1810;
-        }
-
-        .btn-update:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
-        }
-
         .btn-call {
             background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
             color: white;
@@ -478,6 +459,10 @@
 
         body.dark-mode .empty-state {
             color: #ccc;
+        }
+
+        .leaflet-marker-icon {
+            transition: transform 1s ease-out, opacity 0.3s ease;
         }
 
         footer {
@@ -540,7 +525,7 @@
         <div class="stat-card">
             <h3>Active Drivers</h3>
             <p id="activeCount">0</p>
-            <div class="refresh-status" id="activeStatus">Connecting...</div>
+            <div class="refresh-status" id="activeStatus">Scanning...</div>
         </div>
         <div class="stat-card">
             <h3>Moving Now</h3>
@@ -563,11 +548,6 @@
             <div class="map-header">
                 <h2>🗺️ Live Tracking Map</h2>
                 <div class="map-controls">
-                    <select class="interval-selector" id="intervalSelector" onchange="changeRefreshInterval()">
-                        <option value="5000">Fast (5s)</option>
-                        <option value="10000" selected>Normal (10s)</option>
-                        <option value="30000">Slow (30s)</option>
-                    </select>
                     <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
                 </div>
             </div>
@@ -593,9 +573,9 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyMW6TeZm1IRnQgNofmCLK1-uSzx8F7Hr0LZzoJ5vjZsG9hlRcS4bfQfv_5XTos_jqSng/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwy3G2xgnXWSVUCwc-P669mxbI9hUzzMEDDwotEzhF618uLrHWULrizeKiknUE5HrFHaQ/exec';
+        const REFRESH_INTERVAL = 10000;
 
-        let REFRESH_INTERVAL = 10000;
         let map;
         let markers = {};
         let routes = {};
@@ -625,18 +605,6 @@
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 19
             }).addTo(map);
-        }
-
-        function changeRefreshInterval() {
-            const selector = document.getElementById('intervalSelector');
-            REFRESH_INTERVAL = parseInt(selector.value);
-            
-            if (refreshIntervalId) {
-                clearInterval(refreshIntervalId);
-            }
-            startAutoRefresh();
-            
-            localStorage.setItem('refreshInterval', REFRESH_INTERVAL);
         }
 
         function startAutoRefresh() {
@@ -671,7 +639,6 @@
         }
 
         function isMoving(driver) {
-            if (driver.status === 'Stopped') return false;
             if (driver.speed > 5) return true;
             
             const mobile = driver.mobile;
@@ -688,11 +655,35 @@
             return false;
         }
 
+        function animateMarker(marker, newLatLng, duration = 1000) {
+            const startLatLng = marker.getLatLng();
+            const startTime = Date.now();
+
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const easeProgress = progress < 0.5 
+                    ? 2 * progress * progress 
+                    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+                const currentLat = startLatLng.lat + (newLatLng.lat - startLatLng.lat) * easeProgress;
+                const currentLng = startLatLng.lng + (newLatLng.lng - startLatLng.lng) * easeProgress;
+
+                marker.setLatLng([currentLat, currentLng]);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+
+            animate();
+        }
+
         function updateMap(drivers) {
             const bounds = [];
             const currentMobiles = new Set(drivers.map(d => d.mobile));
 
-            // IMMEDIATE REMOVAL: Remove markers for drivers not in current data
             Object.keys(markers).forEach(mobile => {
                 if (!currentMobiles.has(mobile)) {
                     if (markers[mobile]) {
@@ -713,6 +704,12 @@
                 const lng = driver.longitude;
                 const mobile = driver.mobile;
                 
+                if (isNaN(lat) || isNaN(lng) || 
+                    lat < -90 || lat > 90 || 
+                    lng < -180 || lng > 180) {
+                    return;
+                }
+
                 const moving = isMoving(driver);
                 bounds.push([lat, lng]);
 
@@ -745,8 +742,7 @@
                     }
                 }
 
-                const isStopped = driver.status === 'Stopped';
-                const iconColor = isStopped ? '#757575' : (moving ? '#2196F3' : '#4CAF50');
+                const iconColor = moving ? '#2196F3' : '#4CAF50';
                 const iconSize = moving ? 35 : 30;
 
                 const customIcon = L.divIcon({
@@ -757,7 +753,13 @@
                 });
 
                 if (markers[mobile]) {
-                    markers[mobile].setLatLng([lat, lng]);
+                    const oldLatLng = markers[mobile].getLatLng();
+                    const newLatLng = L.latLng(lat, lng);
+                    const distance = calculateDistance(oldLatLng.lat, oldLatLng.lng, lat, lng);
+                    
+                    if (distance > 5) {
+                        animateMarker(markers[mobile], newLatLng, 1000);
+                    }
                     markers[mobile].setIcon(customIcon);
                 } else {
                     markers[mobile] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
@@ -777,7 +779,7 @@
                 `);
             });
 
-            if (bounds.length > 0) {
+            if (bounds.length > 0 && Object.keys(markers).length === drivers.length) {
                 map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
             }
         }
@@ -795,7 +797,6 @@
 
         function smoothUpdateElement(element, newValue) {
             if (element.textContent !== newValue) {
-                element.style.transition = 'transform 0.2s';
                 element.style.transform = 'scale(1.1)';
                 element.textContent = newValue;
                 setTimeout(() => {
@@ -808,75 +809,97 @@
             const container = document.getElementById('driverList');
 
             if (drivers.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                const existingCards = container.querySelectorAll('.driver-card');
+                if (existingCards.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                }
                 return;
             }
 
             drivers.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-            // Build current driver set
-            const currentMobiles = new Set(drivers.map(d => d.mobile));
-            
-            // IMMEDIATE REMOVAL: Remove cards for drivers not in current data
-            const existingCards = container.querySelectorAll('.driver-card');
-            existingCards.forEach(card => {
-                const mobile = card.dataset.mobile;
-                if (mobile && !currentMobiles.has(mobile)) {
-                    card.remove();
-                }
+            const newDriverData = {};
+            drivers.forEach(driver => {
+                newDriverData[driver.mobile] = driver;
             });
 
-            // Remove empty state if we have drivers
-            const emptyState = container.querySelector('.empty-state');
-            if (emptyState) {
-                emptyState.remove();
-            }
-
-            // Build map of existing cards
-            const existingCardsMap = {};
+            const existingCards = {};
             container.querySelectorAll('.driver-card').forEach(card => {
                 const mobile = card.dataset.mobile;
                 if (mobile) {
-                    existingCardsMap[mobile] = card;
+                    existingCards[mobile] = card;
                 }
             });
 
+            Object.keys(existingCards).forEach(mobile => {
+                if (!newDriverData[mobile]) {
+                    const card = existingCards[mobile];
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(-30px)';
+                    setTimeout(() => {
+                        if (card.parentNode) {
+                            card.remove();
+                        }
+                        if (container.querySelectorAll('.driver-card').length === 0) {
+                            container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                        }
+                    }, 300);
+                    delete existingCards[mobile];
+                }
+            });
+
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState && drivers.length > 0) {
+                emptyState.remove();
+            }
+
             drivers.forEach(driver => {
                 const mobile = driver.mobile;
-                const moving = driver.status !== 'Stopped' && isMoving(driver);
+                const moving = isMoving(driver);
                 const timeAgo = getTimeAgo(driver.timestamp);
 
-                if (existingCardsMap[mobile]) {
-                    const card = existingCardsMap[mobile];
+                if (existingCards[mobile]) {
+                    const card = existingCards[mobile];
+                    const oldClass = card.className;
+                    const newClass = `driver-card ${moving ? 'moving' : ''}`;
                     
-                    // Update card class
-                    card.className = `driver-card ${moving ? 'moving' : (driver.status === 'Stopped' ? 'stopped' : '')}`;
+                    if (oldClass !== newClass) {
+                        card.className = newClass;
+                    }
 
-                    // Update status badge
                     const statusBadge = card.querySelector('.status-badge');
-                    const newStatusClass = moving ? 'status-moving' : (driver.status === 'Stopped' ? 'status-stopped' : 'status-active');
-                    const newStatusText = moving ? '🔵 Moving' : (driver.status === 'Stopped' ? 'Stopped' : 'Active');
-                    statusBadge.className = `status-badge ${newStatusClass}`;
-                    statusBadge.textContent = newStatusText;
+                    const newStatusClass = moving ? 'status-moving' : 'status-active';
+                    const newStatusText = moving ? '🔵 Moving' : 'Active';
+                    
+                    if (statusBadge.className !== `status-badge ${newStatusClass}`) {
+                        statusBadge.className = `status-badge ${newStatusClass}`;
+                        statusBadge.textContent = newStatusText;
+                    }
 
-                    // Update time
                     const timeElement = card.querySelector('.driver-details div:first-child span');
                     if (timeElement) {
                         timeElement.className = timeAgo.fresh ? 'time-ago' : 'time-stale';
-                        timeElement.textContent = timeAgo.text;
+                        if (timeElement.textContent !== timeAgo.text) {
+                            timeElement.textContent = timeAgo.text;
+                        }
                     }
 
-                    // Update speed
                     const speedElement = card.querySelector('.driver-details div:nth-child(2)');
                     if (speedElement) {
-                        speedElement.textContent = `🚗 Speed: ${Math.round(driver.speed)} km/h`;
+                        const newSpeed = `🚗 Speed: ${Math.round(driver.speed)} km/h`;
+                        if (speedElement.textContent !== newSpeed) {
+                            speedElement.textContent = newSpeed;
+                        }
                     }
 
                 } else {
-                    // Create new card
                     const newCard = document.createElement('div');
-                    newCard.className = `driver-card ${moving ? 'moving' : (driver.status === 'Stopped' ? 'stopped' : '')}`;
+                    newCard.className = `driver-card ${moving ? 'moving' : ''}`;
                     newCard.dataset.mobile = mobile;
+                    newCard.style.opacity = '0';
+                    newCard.style.transform = 'translateY(20px)';
+                    newCard.style.transition = 'all 0.3s ease';
                     
                     newCard.innerHTML = `
                         <div class="driver-header">
@@ -884,8 +907,8 @@
                                 <h3>${driver.name}</h3>
                                 <p>📱 ${driver.mobile}</p>
                             </div>
-                            <span class="status-badge ${moving ? 'status-moving' : (driver.status === 'Stopped' ? 'status-stopped' : 'status-active')}">
-                                ${moving ? '🔵 Moving' : (driver.status === 'Stopped' ? 'Stopped' : 'Active')}
+                            <span class="status-badge ${moving ? 'status-moving' : 'status-active'}">
+                                ${moving ? '🔵 Moving' : 'Active'}
                             </span>
                         </div>
                         <div class="driver-details">
@@ -894,7 +917,6 @@
                             <div>📍 Accuracy: ±${driver.accuracy}m</div>
                         </div>
                         <div class="driver-actions">
-                            <button class="action-btn btn-update" onclick="refreshData()">Update</button>
                             <a href="tel:${driver.mobile}" class="action-btn btn-call">Call</a>
                             <a href="https://wa.me/91${driver.mobile}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
                             <button class="action-btn btn-map" onclick="focusOnDriver(${driver.latitude}, ${driver.longitude}, '${driver.mobile}')">View on Map</button>
@@ -902,6 +924,11 @@
                     `;
                     
                     container.appendChild(newCard);
+                    
+                    setTimeout(() => {
+                        newCard.style.opacity = '1';
+                        newCard.style.transform = 'translateY(0)';
+                    }, 50);
                 }
             });
         }
@@ -915,8 +942,8 @@
         }
 
         function updateStats(drivers) {
-            const activeDrivers = drivers.filter(d => d.status === 'Active').length;
-            const movingDrivers = drivers.filter(d => d.status === 'Active' && isMoving(d)).length;
+            const activeDrivers = drivers.length;
+            const movingDrivers = drivers.filter(d => isMoving(d)).length;
             
             smoothUpdateElement(document.getElementById('activeCount'), activeDrivers.toString());
             smoothUpdateElement(document.getElementById('movingCount'), movingDrivers.toString());
@@ -932,39 +959,27 @@
 
         async function refreshData() {
             try {
-                const response = await fetch(API_URL + '?action=fetch_active&_=' + Date.now());
+                const response = await fetch(API_URL + '?action=fetch_active&_=' + Date.now(), { 
+                    method: 'GET',
+                    cache: 'no-cache'
+                });
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
                 
                 const result = await response.json();
-                
-                if (result.status === 'success' && Array.isArray(result.drivers)) {
-                    const drivers = result.drivers;
+                const drivers = result.data || [];
 
-                    updateStats(drivers);
-                    updateMap(drivers);
-                    updateDriverList(drivers);
-                    
-                    document.getElementById('activeStatus').textContent = 
-                        drivers.length > 0 ? 'Live tracking' : 'No active drivers';
-                } else {
-                    console.error('Invalid response format:', result);
-                    document.getElementById('activeStatus').textContent = 'Data error';
-                }
+                updateStats(drivers);
+                updateMap(drivers);
+                updateDriverList(drivers);
                 
                 nextRefreshTime = Date.now() + REFRESH_INTERVAL;
             } catch (error) {
                 console.error('Error fetching data:', error);
-                document.getElementById('activeStatus').textContent = 'Retrying...';
+                document.getElementById('activeStatus').textContent = 'Connection error';
             }
-        }
-
-        const savedInterval = localStorage.getItem('refreshInterval');
-        if (savedInterval) {
-            REFRESH_INTERVAL = parseInt(savedInterval);
-            document.getElementById('intervalSelector').value = REFRESH_INTERVAL;
         }
 
         window.onload = function() {
