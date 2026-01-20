@@ -582,8 +582,8 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxpmBRpfNaLYW_uVJqn1sTTSD9wZqnqflNHPR7Vd2FKY-8N2s_LwJRO5tDMYf_2MR6CJg/exec';
-        const REFRESH_INTERVAL = 5000;
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxRV4QMJZ9mtwQPSJkwl7UW1jB98itlSoFxX9eBnolNPb89pk8PH_ylklA6Wu77w253XA/exec';
+        const REFRESH_INTERVAL = 10000;
 
         let map;
         let markers = {};
@@ -644,12 +644,12 @@
         }
 
         function isMoving(driver) {
-            const phone = driver['Phone Number'];
-            const lastPos = lastPositions[phone];
+            const mobile = driver.Mobile;
+            const lastPos = lastPositions[mobile];
             if (lastPos) {
                 const distance = calculateDistance(
                     lastPos.lat, lastPos.lng,
-                    driver.Lat, driver.Lng
+                    driver.Latitude, driver.Longitude
                 );
                 return distance > 10;
             }
@@ -677,27 +677,27 @@
 
         function updateMap(drivers) {
             const bounds = [];
-            const currentPhones = new Set(drivers.map(d => d['Phone Number']));
+            const currentMobiles = new Set(drivers.map(d => d.Mobile));
 
-            Object.keys(markers).forEach(phone => {
-                if (!currentPhones.has(phone)) {
-                    if (markers[phone]) {
-                        map.removeLayer(markers[phone]);
-                        delete markers[phone];
+            Object.keys(markers).forEach(mobile => {
+                if (!currentMobiles.has(mobile)) {
+                    if (markers[mobile]) {
+                        map.removeLayer(markers[mobile]);
+                        delete markers[mobile];
                     }
-                    if (polylines[phone]) {
-                        map.removeLayer(polylines[phone]);
-                        delete polylines[phone];
+                    if (polylines[mobile]) {
+                        map.removeLayer(polylines[mobile]);
+                        delete polylines[mobile];
                     }
-                    delete routes[phone];
-                    delete lastPositions[phone];
+                    delete routes[mobile];
+                    delete lastPositions[mobile];
                 }
             });
 
             drivers.forEach(driver => {
-                const lat = driver.Lat;
-                const lng = driver.Lng;
-                const phone = driver['Phone Number'];
+                const lat = driver.Latitude;
+                const lng = driver.Longitude;
+                const mobile = driver.Mobile;
                 
                 if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
                     return;
@@ -706,27 +706,27 @@
                 const moving = isMoving(driver);
                 bounds.push([lat, lng]);
 
-                lastPositions[phone] = { lat, lng, time: Date.now() };
+                lastPositions[mobile] = { lat, lng, time: Date.now() };
 
-                if (!routes[phone]) {
-                    routes[phone] = [];
+                if (!routes[mobile]) {
+                    routes[mobile] = [];
                 }
                 
-                const lastRoute = routes[phone][routes[phone].length - 1];
+                const lastRoute = routes[mobile][routes[mobile].length - 1];
                 if (!lastRoute || calculateDistance(lastRoute[0], lastRoute[1], lat, lng) > 5) {
-                    routes[phone].push([lat, lng]);
-                    if (routes[phone].length > 200) routes[phone].shift();
+                    routes[mobile].push([lat, lng]);
+                    if (routes[mobile].length > 200) routes[mobile].shift();
                 }
 
-                if (routes[phone].length > 1) {
-                    if (polylines[phone]) {
-                        polylines[phone].setLatLngs(routes[phone]);
-                        polylines[phone].setStyle({
+                if (routes[mobile].length > 1) {
+                    if (polylines[mobile]) {
+                        polylines[mobile].setLatLngs(routes[mobile]);
+                        polylines[mobile].setStyle({
                             color: moving ? '#2196F3' : '#4CAF50',
                             weight: moving ? 4 : 3
                         });
                     } else {
-                        polylines[phone] = L.polyline(routes[phone], {
+                        polylines[mobile] = L.polyline(routes[mobile], {
                             color: moving ? '#2196F3' : '#4CAF50',
                             weight: moving ? 4 : 3,
                             opacity: 0.8,
@@ -745,25 +745,26 @@
                     iconAnchor: [iconSize/2, iconSize/2]
                 });
 
-                if (markers[phone]) {
-                    const oldLatLng = markers[phone].getLatLng();
+                if (markers[mobile]) {
+                    const oldLatLng = markers[mobile].getLatLng();
                     const newLatLng = L.latLng(lat, lng);
                     const distance = calculateDistance(oldLatLng.lat, oldLatLng.lng, lat, lng);
                     if (distance > 5) {
-                        animateMarker(markers[phone], newLatLng, 1000);
+                        animateMarker(markers[mobile], newLatLng, 1000);
                     }
-                    markers[phone].setIcon(customIcon);
+                    markers[mobile].setIcon(customIcon);
                 } else {
-                    markers[phone] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+                    markers[mobile] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
                 }
 
-                const time = new Date(driver['Last Update Time']).toLocaleString('en-IN');
+                const time = new Date(driver['Last Update Timestamp']).toLocaleString('en-IN');
                 const movingStatus = moving ? '🔵 Moving' : '⚪ Active';
                 
-                markers[phone].bindPopup(`
-                    <strong>${driver['Driver Name']}</strong><br>
-                    📱 ${driver['Phone Number']}<br>
+                markers[mobile].bindPopup(`
+                    <strong>${driver.Name}</strong><br>
+                    📱 ${driver.Mobile}<br>
                     ${movingStatus}<br>
+                    📊 Updates: ${driver['Updates Count']}<br>
                     ⏰ ${time}
                 `);
             });
@@ -804,14 +805,14 @@
                 return;
             }
 
-            drivers.sort((a, b) => new Date(b['Last Update Time']) - new Date(a['Last Update Time']));
+            drivers.sort((a, b) => new Date(b['Last Update Timestamp']) - new Date(a['Last Update Timestamp']));
 
-            const newPhones = new Set(drivers.map(d => d['Phone Number']));
+            const newMobiles = new Set(drivers.map(d => d.Mobile));
             const existingCards = {};
             container.querySelectorAll('.driver-card').forEach(card => {
-                const phone = card.dataset.phone;
-                if (phone) {
-                    if (!newPhones.has(phone)) {
+                const mobile = card.dataset.mobile;
+                if (mobile) {
+                    if (!newMobiles.has(mobile)) {
                         card.style.transition = 'all 0.3s ease';
                         card.style.opacity = '0';
                         card.style.transform = 'translateX(-30px)';
@@ -824,7 +825,7 @@
                             }
                         }, 300);
                     } else {
-                        existingCards[phone] = card;
+                        existingCards[mobile] = card;
                     }
                 }
             });
@@ -835,12 +836,12 @@
             }
 
             drivers.forEach(driver => {
-                const phone = driver['Phone Number'];
+                const mobile = driver.Mobile;
                 const moving = isMoving(driver);
-                const timeAgo = getTimeAgo(driver['Last Update Time']);
+                const timeAgo = getTimeAgo(driver['Last Update Timestamp']);
 
-                if (existingCards[phone]) {
-                    const card = existingCards[phone];
+                if (existingCards[mobile]) {
+                    const card = existingCards[mobile];
                     const oldClass = card.className;
                     const newClass = `driver-card ${moving ? 'moving' : ''}`;
                     if (oldClass !== newClass) {
@@ -862,10 +863,18 @@
                             timeElement.textContent = timeAgo.text;
                         }
                     }
+
+                    const updatesElement = card.querySelector('.driver-details div:nth-child(2)');
+                    if (updatesElement) {
+                        const newUpdatesText = `📊 Updates: ${driver['Updates Count']}`;
+                        if (updatesElement.textContent !== newUpdatesText) {
+                            updatesElement.textContent = newUpdatesText;
+                        }
+                    }
                 } else {
                     const newCard = document.createElement('div');
                     newCard.className = `driver-card ${moving ? 'moving' : ''}`;
-                    newCard.dataset.phone = phone;
+                    newCard.dataset.mobile = mobile;
                     newCard.style.opacity = '0';
                     newCard.style.transform = 'translateY(20px)';
                     newCard.style.transition = 'all 0.3s ease';
@@ -873,8 +882,8 @@
                     newCard.innerHTML = `
                         <div class="driver-header">
                             <div class="driver-info">
-                                <h3>${driver['Driver Name']}</h3>
-                                <p>📱 ${driver['Phone Number']}</p>
+                                <h3>${driver.Name}</h3>
+                                <p>📱 ${driver.Mobile}</p>
                             </div>
                             <span class="status-badge ${moving ? 'status-moving' : 'status-active'}">
                                 ${moving ? '🔵 Moving' : 'Active'}
@@ -882,12 +891,13 @@
                         </div>
                         <div class="driver-details">
                             <div>⏰ <span class="${timeAgo.fresh ? 'time-ago' : 'time-stale'}">${timeAgo.text}</span></div>
-                            <div>📍 Location: ${driver.Lat.toFixed(5)}, ${driver.Lng.toFixed(5)}</div>
+                            <div>📊 Updates: ${driver['Updates Count']}</div>
+                            <div>📍 Location: ${driver.Latitude.toFixed(5)}, ${driver.Longitude.toFixed(5)}</div>
                         </div>
                         <div class="driver-actions">
-                            <a href="tel:${phone}" class="action-btn btn-call">Call</a>
-                            <a href="https://wa.me/91${phone}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
-                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.Lat}, ${driver.Lng}, '${phone}')">View on Map</button>
+                            <a href="tel:${mobile}" class="action-btn btn-call">Call</a>
+                            <a href="https://wa.me/91${mobile}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
+                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.Latitude}, ${driver.Longitude}, '${mobile}')">View on Map</button>
                         </div>
                     `;
                     
@@ -900,10 +910,10 @@
             });
         }
 
-        function focusOnDriver(lat, lng, phone) {
+        function focusOnDriver(lat, lng, mobile) {
             map.setView([lat, lng], 16, { animate: true, duration: 1 });
-            if (markers[phone]) {
-                setTimeout(() => markers[phone].openPopup(), 500);
+            if (markers[mobile]) {
+                setTimeout(() => markers[mobile].openPopup(), 500);
             }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -936,7 +946,7 @@
                 }
                 
                 const data = await response.json();
-                const activeDrivers = data.filter(d => d['Tracking State'] === 'ACTIVE');
+                const activeDrivers = data.filter(d => d.Status === 'ACTIVE');
 
                 updateStats(activeDrivers);
                 updateMap(activeDrivers);
@@ -963,4 +973,3 @@
     </script>
 </body>
 </html>
-
