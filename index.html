@@ -352,20 +352,12 @@
             margin-top: 20px;
         }
 
-        /* ============================================
-           MOBILE-ONLY OPTIMIZATIONS
-           Target: 360px - 768px screens
-           Purpose: Eliminate horizontal scroll, improve touch usability
-           NO LOGIC CHANGES - CSS LAYOUT ONLY
-           ============================================ */
         @media (max-width: 768px) {
-            /* Reduce body padding for better screen utilization */
             body {
                 padding: 12px;
                 justify-content: flex-start;
             }
 
-            /* Adjust header sizing for mobile */
             .header {
                 margin-bottom: 20px;
                 padding: 20px 15px;
@@ -381,14 +373,12 @@
                 font-size: 0.9em;
             }
 
-            /* Reduce card padding to maximize content area */
             .card {
                 padding: 20px 16px;
                 border-radius: 16px;
                 margin-bottom: 16px;
             }
 
-            /* Optimize form inputs for mobile touch */
             .form-group {
                 margin-bottom: 16px;
             }
@@ -400,11 +390,10 @@
 
             .form-group input {
                 padding: 14px 12px;
-                font-size: 16px; /* Prevents zoom on iOS */
+                font-size: 16px;
                 border-radius: 10px;
             }
 
-            /* Toggle group mobile optimization */
             .toggle-group {
                 padding: 12px;
                 border-radius: 10px;
@@ -417,7 +406,6 @@
                 margin-right: 10px;
             }
 
-            /* Status indicator mobile sizing */
             .status-indicator {
                 padding: 12px;
                 border-radius: 10px;
@@ -425,28 +413,24 @@
                 font-size: 0.9em;
             }
 
-            /* Button group: Stack vertically on narrow screens */
             .button-group {
                 grid-template-columns: 1fr;
                 gap: 10px;
                 margin-top: 16px;
             }
 
-            /* All buttons full width on mobile */
             .btn {
                 padding: 14px 16px;
                 font-size: 0.9em;
                 letter-spacing: 0.3px;
             }
 
-            /* Cancel, Update, Navigate buttons: override grid-column */
             .btn-cancel,
             .btn-update,
             .btn-navigate {
                 grid-column: span 1;
             }
 
-            /* Stats box mobile optimization */
             .stats-box {
                 padding: 12px;
                 margin-top: 12px;
@@ -458,7 +442,6 @@
                 margin-bottom: 6px;
             }
 
-            /* Info box mobile adjustments */
             .info-box {
                 padding: 12px;
                 margin-top: 16px;
@@ -471,7 +454,6 @@
                 margin-bottom: 6px;
             }
 
-            /* Modal mobile optimization */
             .modal-content {
                 padding: 24px 20px;
                 width: 92%;
@@ -499,7 +481,6 @@
                 width: 100%;
             }
 
-            /* Footer mobile sizing */
             footer {
                 font-size: 0.75em;
                 margin-top: 16px;
@@ -507,7 +488,6 @@
             }
         }
 
-        /* Extra narrow screens (360px and below) */
         @media (max-width: 360px) {
             body {
                 padding: 10px;
@@ -611,7 +591,6 @@
         </footer>
     </div>
 
-    <!-- Confirmation Modals -->
     <div class="modal" id="startModal">
         <div class="modal-content">
             <h2>Start Journey?</h2>
@@ -626,7 +605,7 @@
     <div class="modal" id="stopModal">
         <div class="modal-content">
             <h2>Stop Journey?</h2>
-            <p>This will stop location tracking. Your last location will be saved for 12 hours.</p>
+            <p>This will stop location tracking. Your last location will be saved.</p>
             <div class="modal-buttons">
                 <button class="btn btn-cancel" onclick="closeModal('stopModal')">Cancel</button>
                 <button class="btn btn-stop" onclick="stopTracking()">Stop</button>
@@ -643,7 +622,7 @@
     </div>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbwy3G2xgnXWSVUCwc-P669mxbI9hUzzMEDDwotEzhF618uLrHWULrizeKiknUE5HrFHaQ/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzFwItcBCBlpZ6P89FTEUjrDt4A117eyOwieT2fvgAXMU6DwnApGSjRZWmFpr9ooe2xFA/exec';
         let trackingInterval = null;
         let updateCount = 0;
         let driverData = {};
@@ -753,8 +732,8 @@
             document.getElementById('statusActive').style.display = 'block';
             document.getElementById('statsBox').classList.add('show');
 
-            sendLocation();
-            trackingInterval = setInterval(sendLocation, 10000); // 10 seconds
+            sendLocationStart();
+            trackingInterval = setInterval(sendLocationUpdate, 10000);
 
             localStorage.setItem('driverTracking', JSON.stringify(driverData));
         }
@@ -773,7 +752,7 @@
             document.getElementById('statsBox').classList.add('show');
             document.getElementById('updateCount').textContent = updateCount;
 
-            trackingInterval = setInterval(sendLocation, 10000);
+            trackingInterval = setInterval(sendLocationUpdate, 10000);
         }
 
         function stopTracking() {
@@ -784,22 +763,7 @@
                 trackingInterval = null;
             }
 
-            sendLocation(true);
-
-            document.getElementById('driverName').disabled = false;
-            document.getElementById('driverMobile').disabled = false;
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('cancelBtn').style.display = 'none';
-            document.getElementById('updateBtn').style.display = 'none';
-            document.getElementById('statusInactive').style.display = 'block';
-            document.getElementById('statusActive').style.display = 'none';
-            document.getElementById('statsBox').classList.remove('show');
-
-            localStorage.removeItem('driverTracking');
-            updateCount = 0;
-            
-            showModal('thankYouModal');
+            sendLocationStop();
         }
 
         function cancelJourney() {
@@ -809,57 +773,155 @@
         }
 
         function forceUpdate() {
-            sendLocation();
+            sendLocationUpdate();
         }
 
-        function sendLocation(isStopped = false) {
+        function sendLocationStart() {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
-                    const data = {
+                    const payload = {
+                        action: "start",
                         name: driverData.name,
-                        mobile: driverData.mobile,
+                        phone: driverData.mobile,
                         latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        timestamp: new Date().toISOString(),
-                        status: isStopped ? 'Stopped' : 'Active',
-                        speed: position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0,
-                        accuracy: Math.round(position.coords.accuracy)
+                        longitude: position.coords.longitude
                     };
 
                     fetch(API_URL, {
                         redirect: 'follow',
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'text/plain;charset=utf-8',
-                        },
-                        body: JSON.stringify(data)
-                    }).then(response => {
-                        console.log('Location sent successfully');
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Start response:', data);
                         updateCount++;
                         document.getElementById('updateCount').textContent = updateCount;
                         document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
                         
                         if (showStats) {
-                            document.getElementById('speedValue').textContent = data.speed + ' km/h';
-                            document.getElementById('accuracyValue').textContent = data.accuracy + ' meters';
+                            const speed = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0;
+                            const accuracy = Math.round(position.coords.accuracy);
+                            document.getElementById('speedValue').textContent = speed + ' km/h';
+                            document.getElementById('accuracyValue').textContent = accuracy + ' meters';
                         }
                         
                         driverData.updateCount = updateCount;
                         localStorage.setItem('driverTracking', JSON.stringify(driverData));
-                    }).catch(error => {
-                        console.error('Error:', error);
+                    })
+                    .catch(error => {
+                        console.error('Network error on start:', error);
+                    });
+                },
+                function(error) {
+                    console.error('Geolocation error:', error);
+                    alert('Unable to get location. Please enable GPS and refresh the page.');
+                },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        }
+
+        function sendLocationUpdate() {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const payload = {
+                        action: "update",
+                        phone: driverData.mobile,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+
+                    fetch(API_URL, {
+                        redirect: 'follow',
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Update response:', data);
+                        
+                        if (data.status === "row_not_found") {
+                            console.warn('Row not found - tracking continues');
+                        } else if (data.trackingState === "STOPPED") {
+                            console.log('Backend returned STOPPED - forcing stop');
+                            forceStopUI();
+                            return;
+                        }
+                        
+                        updateCount++;
+                        document.getElementById('updateCount').textContent = updateCount;
+                        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
+                        
+                        if (showStats) {
+                            const speed = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0;
+                            const accuracy = Math.round(position.coords.accuracy);
+                            document.getElementById('speedValue').textContent = speed + ' km/h';
+                            document.getElementById('accuracyValue').textContent = accuracy + ' meters';
+                        }
+                        
+                        driverData.updateCount = updateCount;
+                        localStorage.setItem('driverTracking', JSON.stringify(driverData));
+                    })
+                    .catch(error => {
+                        console.error('Network error on update:', error);
                     });
                 },
                 function(error) {
                     console.error('Geolocation error:', error);
                 },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                }
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );
         }
-    </script>
+
+        function sendLocationStop() {
+            const payload = {
+                action: "stop",
+                phone: driverData.mobile
+            };
+
+            fetch(API_URL, {
+                redirect: 'follow',
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Stop response:', data);
+                resetUI();
+                showModal('thankYouModal');
+            })
+            .catch(error => {
+                console.error('Error stopping:', error);
+                resetUI();
+                showModal('thankYouModal');
+            });
+        }
+
+        function forceStopUI() {
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+                trackingInterval = null;
+            }
+            resetUI();
+            alert('Tracking has been stopped by administrator.');
+        }
+
+        function resetUI() {
+            document.getElementById('driverName').disabled = false;
+            document.getElementById('driverMobile').disabled = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('updateBtn').style.display = 'none';
+document.getElementById('statusInactive').style.display = 'block';
+document.getElementById('statusActive').style.display = 'none';
+document.getElementById('statsBox').classList.remove('show');
+        localStorage.removeItem('driverTracking');
+        updateCount = 0;
+    }
+</script>
 </body>
 </html>
