@@ -429,16 +429,6 @@
             display: inline-block;
         }
 
-        .btn-remove {
-            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
-            color: white;
-        }
-
-        .btn-remove:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
-        }
-
         .btn-update {
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
             color: #2C1810;
@@ -608,9 +598,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStfrQtNvP8d63OIsxyEoY04nhGTB2Yn1L0DZVZ0CGENr4W0dXR0mIe5jNwCmVjOcbeKUfsADqp3zj-/pubhtml?gid=0&single=true';
-        const CALL_NUMBER = '8290043074';
-        const WHATSAPP_NUMBER = '9672035881';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzFwItcBCBlpZ6P89FTEUjrDt4A117eyOwieT2fvgAXMU6DwnApGSjRZWmFpr9ooe2xFA/exec';
 
         let REFRESH_INTERVAL = 5000;
         let map;
@@ -619,7 +607,6 @@
         let polylines = {};
         let lastPositions = {};
         let currentDriverData = {};
-        let manuallyRemovedDrivers = new Set(); // Track manually removed drivers
         let refreshIntervalId = null;
         let countdownIntervalId = null;
         let nextRefreshTime = Date.now();
@@ -674,67 +661,6 @@
             }, 100);
         }
 
-        function parseCSV(csv) {
-            const lines = csv.trim().split('\n');
-            if (lines.length < 2) return [];
-
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            const data = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim() === '') continue;
-                
-                const values = [];
-                let currentValue = '';
-                let insideQuotes = false;
-                
-                for (let char of lines[i]) {
-                    if (char === '"') {
-                        insideQuotes = !insideQuotes;
-                    } else if (char === ',' && !insideQuotes) {
-                        values.push(currentValue.trim().replace(/"/g, ''));
-                        currentValue = '';
-                    } else {
-                        currentValue += char;
-                    }
-                }
-                values.push(currentValue.trim().replace(/"/g, ''));
-                
-                const row = {};
-                headers.forEach((header, index) => {
-                    row[header] = values[index] || '';
-                });
-                
-                const name = row['Name'] || row['name'];
-                const mobile = row['Mobile'] || row['mobile'] || row['phone'];
-                const lat = row['Latitude'] || row['latitude'];
-                const lng = row['Longitude'] || row['longitude'];
-                
-                const latNum = parseFloat(lat);
-                const lngNum = parseFloat(lng);
-                
-                if (name && mobile && lat && lng && 
-                    !isNaN(latNum) && !isNaN(lngNum) &&
-                    latNum >= -90 && latNum <= 90 &&
-                    lngNum >= -180 && lngNum <= 180 &&
-                    !manuallyRemovedDrivers.has(mobile)) { // Skip manually removed drivers
-                    
-                    data.push({
-                        Name: name,
-                        Mobile: mobile,
-                        Latitude: latNum,
-                        Longitude: lngNum,
-                        Status: row['Status'] || row['status'] || 'Active',
-                        Speed: parseFloat(row['Speed'] || row['speed'] || 0),
-                        Accuracy: row['Accuracy'] || row['accuracy'] || '-',
-                        Timestamp: row['Timestamp'] || row['timestamp'] || new Date().toISOString()
-                    });
-                }
-            }
-
-            return data;
-        }
-
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
             const φ1 = lat1 * Math.PI / 180;
@@ -751,16 +677,13 @@
         }
 
         function isMoving(driver) {
-            if (driver.Status === 'Stopped') return false;
-            if (driver.Speed > 5) return true;
-            
-            const mobile = driver.Mobile;
-            const lastPos = lastPositions[mobile];
+            const phone = driver.phone;
+            const lastPos = lastPositions[phone];
             
             if (lastPos) {
                 const distance = calculateDistance(
                     lastPos.lat, lastPos.lng,
-                    driver.Latitude, driver.Longitude
+                    driver.latitude, driver.longitude
                 );
                 return distance > 10;
             }
@@ -795,12 +718,12 @@
 
         function updateMap(drivers) {
             const bounds = [];
-            const currentMobiles = new Set(drivers.map(d => d.Mobile));
+            const currentPhones = new Set(drivers.map(d => d.phone));
 
             drivers.forEach(driver => {
-                const lat = driver.Latitude;
-                const lng = driver.Longitude;
-                const mobile = driver.Mobile;
+                const lat = driver.latitude;
+                const lng = driver.longitude;
+                const phone = driver.phone;
                 
                 if (isNaN(lat) || isNaN(lng) || 
                     lat < -90 || lat > 90 || 
@@ -811,27 +734,27 @@
                 const moving = isMoving(driver);
                 bounds.push([lat, lng]);
 
-                lastPositions[mobile] = { lat, lng, time: Date.now() };
+                lastPositions[phone] = { lat, lng, time: Date.now() };
 
-                if (!routes[mobile]) {
-                    routes[mobile] = [];
+                if (!routes[phone]) {
+                    routes[phone] = [];
                 }
                 
-                const lastRoute = routes[mobile][routes[mobile].length - 1];
+                const lastRoute = routes[phone][routes[phone].length - 1];
                 if (!lastRoute || calculateDistance(lastRoute[0], lastRoute[1], lat, lng) > 5) {
-                    routes[mobile].push([lat, lng]);
-                    if (routes[mobile].length > 200) routes[mobile].shift();
+                    routes[phone].push([lat, lng]);
+                    if (routes[phone].length > 200) routes[phone].shift();
                 }
 
-                if (routes[mobile].length > 1) {
-                    if (polylines[mobile]) {
-                        polylines[mobile].setLatLngs(routes[mobile]);
-                        polylines[mobile].setStyle({
+                if (routes[phone].length > 1) {
+                    if (polylines[phone]) {
+                        polylines[phone].setLatLngs(routes[phone]);
+                        polylines[phone].setStyle({
                             color: moving ? '#2196F3' : '#9E9E9E',
                             weight: moving ? 4 : 3
                         });
                     } else {
-                        polylines[mobile] = L.polyline(routes[mobile], {
+                        polylines[phone] = L.polyline(routes[phone], {
                             color: moving ? '#2196F3' : '#9E9E9E',
                             weight: moving ? 4 : 3,
                             opacity: 0.8,
@@ -840,7 +763,7 @@
                     }
                 }
 
-                const isStopped = driver.Status === 'Stopped';
+                const isStopped = driver.trackingState === 'STOPPED';
                 const iconColor = isStopped ? '#757575' : (moving ? '#2196F3' : '#4CAF50');
                 const iconSize = moving ? 35 : 30;
 
@@ -851,47 +774,43 @@
                     iconAnchor: [iconSize/2, iconSize/2]
                 });
 
-                if (markers[mobile]) {
-                    const oldLatLng = markers[mobile].getLatLng();
+                if (markers[phone]) {
+                    const oldLatLng = markers[phone].getLatLng();
                     const newLatLng = L.latLng(lat, lng);
                     const distance = calculateDistance(oldLatLng.lat, oldLatLng.lng, lat, lng);
                     
                     if (distance > 5) {
-                        animateMarker(markers[mobile], newLatLng, 1000);
+                        animateMarker(markers[phone], newLatLng, 1000);
                     }
-                    markers[mobile].setIcon(customIcon);
+                    markers[phone].setIcon(customIcon);
                 } else {
-                    markers[mobile] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+                    markers[phone] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
                 }
 
-                const time = new Date(driver.Timestamp).toLocaleString('en-IN');
-                const speedDisplay = driver.Speed > 0 ? `🚗 ${Math.round(driver.Speed)} km/h` : '🛑 Stopped';
+                const time = new Date(driver.lastUpdateTime).toLocaleString('en-IN');
                 const movingStatus = moving ? '🔵 Moving' : '⚪ Stationary';
                 
-                markers[mobile].bindPopup(`
-                    <strong>${driver.Name}</strong><br>
-                    📱 ${driver.Mobile}<br>
-                    ${speedDisplay}<br>
+                markers[phone].bindPopup(`
+                    <strong>${driver.name}</strong><br>
+                    📱 ${driver.phone}<br>
                     ${movingStatus}<br>
-                    ⏰ ${time}<br>
-                    📍 Accuracy: ±${driver.Accuracy}m
+                    ⏰ ${time}
                 `);
             });
 
-            // Remove markers for drivers no longer in sheet (IMMEDIATE REMOVAL)
-            Object.keys(markers).forEach(mobile => {
-                if (!currentMobiles.has(mobile)) {
-                    if (markers[mobile]) {
-                        map.removeLayer(markers[mobile]);
-                        delete markers[mobile];
+            Object.keys(markers).forEach(phone => {
+                if (!currentPhones.has(phone)) {
+                    if (markers[phone]) {
+                        map.removeLayer(markers[phone]);
+                        delete markers[phone];
                     }
-                    if (polylines[mobile]) {
-                        map.removeLayer(polylines[mobile]);
-                        delete polylines[mobile];
+                    if (polylines[phone]) {
+                        map.removeLayer(polylines[phone]);
+                        delete polylines[phone];
                     }
-                    delete routes[mobile];
-                    delete lastPositions[mobile];
-                    delete currentDriverData[mobile];
+                    delete routes[phone];
+                    delete lastPositions[phone];
+                    delete currentDriverData[phone];
                 }
             });
 
@@ -925,33 +844,31 @@
             const container = document.getElementById('driverList');
 
             if (drivers.length === 0) {
-                // Check if we have any cards - if yes, they should all be from sheet removal
                 const existingCards = container.querySelectorAll('.driver-card');
                 if (existingCards.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                    container.innerHTML = '<div class="empty-state"><p>No active drivers. Waiting for drivers to start journey...</p></div>';
                 }
                 return;
             }
 
-            drivers.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+            drivers.sort((a, b) => new Date(b.lastUpdateTime) - new Date(a.lastUpdateTime));
 
             const newDriverData = {};
             drivers.forEach(driver => {
-                newDriverData[driver.Mobile] = driver;
+                newDriverData[driver.phone] = driver;
             });
 
             const existingCards = {};
             container.querySelectorAll('.driver-card').forEach(card => {
-                const mobile = card.dataset.mobile;
-                if (mobile) {
-                    existingCards[mobile] = card;
+                const phone = card.dataset.phone;
+                if (phone) {
+                    existingCards[phone] = card;
                 }
             });
 
-            // IMMEDIATE REMOVAL: Remove cards for drivers no longer in sheet
-            Object.keys(existingCards).forEach(mobile => {
-                if (!newDriverData[mobile]) {
-                    const card = existingCards[mobile];
+            Object.keys(existingCards).forEach(phone => {
+                if (!newDriverData[phone]) {
+                    const card = existingCards[phone];
                     card.style.transition = 'all 0.3s ease';
                     card.style.opacity = '0';
                     card.style.transform = 'translateX(-30px)';
@@ -959,38 +876,36 @@
                         if (card.parentNode) {
                             card.remove();
                         }
-                        // Check if empty after removal
                         if (container.querySelectorAll('.driver-card').length === 0) {
-                            container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                            container.innerHTML = '<div class="empty-state"><p>No active drivers. Waiting for drivers to start journey...</p></div>';
                         }
                     }, 300);
-                    delete existingCards[mobile];
+                    delete existingCards[phone];
                 }
             });
 
-            // Remove empty state if we're adding cards
             const emptyState = container.querySelector('.empty-state');
             if (emptyState && drivers.length > 0) {
                 emptyState.remove();
             }
 
             drivers.forEach(driver => {
-                const mobile = driver.Mobile;
-                const moving = driver.Status !== 'Stopped' && isMoving(driver);
-                const timeAgo = getTimeAgo(driver.Timestamp);
+                const phone = driver.phone;
+                const moving = driver.trackingState !== 'STOPPED' && isMoving(driver);
+                const timeAgo = getTimeAgo(driver.lastUpdateTime);
 
-                if (existingCards[mobile]) {
-                    const card = existingCards[mobile];
+                if (existingCards[phone]) {
+                    const card = existingCards[phone];
                     const oldClass = card.className;
-                    const newClass = `driver-card ${moving ? 'moving' : (driver.Status === 'Stopped' ? 'stopped' : '')}`;
+                    const newClass = `driver-card ${moving ? 'moving' : (driver.trackingState === 'STOPPED' ? 'stopped' : '')}`;
                     
                     if (oldClass !== newClass) {
                         card.className = newClass;
                     }
 
                     const statusBadge = card.querySelector('.status-badge');
-                    const newStatusClass = moving ? 'status-moving' : (driver.Status === 'Stopped' ? 'status-stopped' : 'status-active');
-                    const newStatusText = moving ? '🔵 Moving' : (driver.Status === 'Stopped' ? 'Stopped' : 'Active');
+                    const newStatusClass = moving ? 'status-moving' : (driver.trackingState === 'STOPPED' ? 'status-stopped' : 'status-active');
+                    const newStatusText = moving ? '🔵 Moving' : (driver.trackingState === 'STOPPED' ? 'Stopped' : 'Active');
                     
                     if (statusBadge.className !== `status-badge ${newStatusClass}`) {
                         statusBadge.className = `status-badge ${newStatusClass}`;
@@ -1005,18 +920,10 @@
                         }
                     }
 
-                    const speedElement = card.querySelector('.driver-details div:nth-child(2)');
-                    if (speedElement) {
-                        const newSpeed = `🚗 Speed: ${Math.round(driver.Speed)} km/h`;
-                        if (speedElement.textContent !== newSpeed) {
-                            speedElement.textContent = newSpeed;
-                        }
-                    }
-
                 } else {
                     const newCard = document.createElement('div');
-                    newCard.className = `driver-card ${moving ? 'moving' : (driver.Status === 'Stopped' ? 'stopped' : '')}`;
-                    newCard.dataset.mobile = mobile;
+                    newCard.className = `driver-card ${moving ? 'moving' : (driver.trackingState === 'STOPPED' ? 'stopped' : '')}`;
+                    newCard.dataset.phone = phone;
                     newCard.style.opacity = '0';
                     newCard.style.transform = 'translateY(20px)';
                     newCard.style.transition = 'all 0.3s ease';
@@ -1024,24 +931,22 @@
                     newCard.innerHTML = `
                         <div class="driver-header">
                             <div class="driver-info">
-                                <h3>${driver.Name}</h3>
-                                <p>📱 ${driver.Mobile}</p>
+                                <h3>${driver.name}</h3>
+                                <p>📱 ${driver.phone}</p>
                             </div>
-                            <span class="status-badge ${moving ? 'status-moving' : (driver.Status === 'Stopped' ? 'status-stopped' : 'status-active')}">
-                                ${moving ? '🔵 Moving' : (driver.Status === 'Stopped' ? 'Stopped' : 'Active')}
+                            <span class="status-badge ${moving ? 'status-moving' : (driver.trackingState === 'STOPPED' ? 'status-stopped' : 'status-active')}">
+                                ${moving ? '🔵 Moving' : (driver.trackingState === 'STOPPED' ? 'Stopped' : 'Active')}
                             </span>
                         </div>
                         <div class="driver-details">
                             <div>⏰ <span class="${timeAgo.fresh ? 'time-ago' : 'time-stale'}">${timeAgo.text}</span></div>
-                            <div>🚗 Speed: ${Math.round(driver.Speed)} km/h</div>
-                            <div>📍 Accuracy: ±${driver.Accuracy}m</div>
+                            <div>📍 Last update: ${new Date(driver.lastUpdateTime).toLocaleTimeString('en-IN')}</div>
                         </div>
                         <div class="driver-actions">
-                            <button class="action-btn btn-remove" onclick="removeDriver('${driver.Mobile}')">Remove</button>
                             <button class="action-btn btn-update" onclick="refreshData()">Update</button>
-                            <a href="tel:${CALL_NUMBER}" class="action-btn btn-call">Call</a>
-                            <a href="https://wa.me/91${WHATSAPP_NUMBER}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
-                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.Latitude}, ${driver.Longitude}, '${driver.Mobile}')">View on Map</button>
+                            <a href="tel:${phone}" class="action-btn btn-call">Call</a>
+                            <a href="https://wa.me/91${phone}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
+                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.latitude}, ${driver.longitude}, '${phone}')">View on Map</button>
                         </div>
                     `;
                     
@@ -1057,56 +962,17 @@
             currentDriverData = newDriverData;
         }
 
-        function removeDriver(mobile) {
-            if (confirm('Remove this driver from dashboard?')) {
-                // Add to manually removed list
-                manuallyRemovedDrivers.add(mobile);
-                
-                // IMMEDIATE removal from map
-                if (markers[mobile]) {
-                    map.removeLayer(markers[mobile]);
-                    delete markers[mobile];
-                }
-                if (polylines[mobile]) {
-                    map.removeLayer(polylines[mobile]);
-                    delete polylines[mobile];
-                }
-                delete routes[mobile];
-                delete lastPositions[mobile];
-                delete currentDriverData[mobile];
-                
-                // IMMEDIATE removal from sidebar
-                const driverList = document.getElementById('driverList');
-                const card = driverList.querySelector(`[data-mobile="${mobile}"]`);
-                if (card) {
-                    card.style.transition = 'all 0.3s ease';
-                    card.style.opacity = '0';
-                    card.style.transform = 'translateX(-30px)';
-                    setTimeout(() => {
-                        card.remove();
-                        // Check if empty after removal
-                        if (driverList.querySelectorAll('.driver-card').length === 0) {
-                            driverList.innerHTML = '<div class="empty-state"><p>No drivers tracking. Click refresh to load drivers...</p></div>';
-                        }
-                    }, 300);
-                }
-                
-                // Update stats immediately
-                setTimeout(updateStatsFromCurrentData, 100);
-            }
-        }
-
-        function focusOnDriver(lat, lng, mobile) {
+        function focusOnDriver(lat, lng, phone) {
             map.setView([lat, lng], 16, { animate: true, duration: 1 });
-            if (markers[mobile]) {
-                setTimeout(() => markers[mobile].openPopup(), 500);
+            if (markers[phone]) {
+                setTimeout(() => markers[phone].openPopup(), 500);
             }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function updateStats(drivers) {
-            const activeDrivers = drivers.filter(d => d.Status === 'Active').length;
-            const movingDrivers = drivers.filter(d => d.Status === 'Active' && isMoving(d)).length;
+            const activeDrivers = drivers.filter(d => d.trackingState === 'ACTIVE').length;
+            const movingDrivers = drivers.filter(d => d.trackingState === 'ACTIVE' && isMoving(d)).length;
             
             smoothUpdateElement(document.getElementById('activeCount'), activeDrivers.toString());
             smoothUpdateElement(document.getElementById('movingCount'), movingDrivers.toString());
@@ -1120,14 +986,9 @@
                 activeDrivers > 0 ? 'Live tracking' : 'Waiting...';
         }
 
-        function updateStatsFromCurrentData() {
-            const drivers = Object.values(currentDriverData);
-            updateStats(drivers);
-        }
-
         async function refreshData() {
             try {
-                const response = await fetch(SHEET_URL + '&_=' + Date.now(), { 
+                const response = await fetch(API_URL + '?t=' + Date.now(), { 
                     cache: 'no-cache',
                     mode: 'cors'
                 });
@@ -1136,12 +997,18 @@
                     throw new Error(`HTTP ${response.status}`);
                 }
                 
-                const csv = await response.text();
-                const drivers = parseCSV(csv);
+                const result = await response.json();
+                
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'API returned error status');
+                }
 
-                updateStats(drivers);
-                updateMap(drivers);
-                updateDriverList(drivers);
+                const allDrivers = result.drivers || [];
+                const activeDrivers = allDrivers.filter(d => d.trackingState === 'ACTIVE');
+
+                updateStats(activeDrivers);
+                updateMap(activeDrivers);
+                updateDriverList(activeDrivers);
                 
                 nextRefreshTime = Date.now() + REFRESH_INTERVAL;
             } catch (error) {
@@ -1170,5 +1037,3 @@
     </script>
 </body>
 </html>
-
-
