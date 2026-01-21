@@ -678,17 +678,26 @@
 
         function isMoving(driver) {
             const phone = driver.phone;
+            const lat = parseFloat(driver.latitude);
+            const lng = parseFloat(driver.longitude);
             const lastPos = lastPositions[phone];
             
-            if (lastPos) {
-                const distance = calculateDistance(
-                    lastPos.lat, lastPos.lng,
-                    driver.latitude, driver.longitude
-                );
-                return distance > 10;
+            if (!lastPos) {
+                lastPositions[phone] = { lat, lng, time: Date.now() };
+                return true;
             }
             
-            return false;
+            const timeDiff = (Date.now() - lastPos.time) / 1000;
+            if (timeDiff < 2) {
+                return lastPos.moving || false;
+            }
+            
+            const distance = calculateDistance(lastPos.lat, lastPos.lng, lat, lng);
+            const isCurrentlyMoving = distance > 10;
+            
+            lastPositions[phone] = { lat, lng, time: Date.now(), moving: isCurrentlyMoving };
+            
+            return isCurrentlyMoving;
         }
 
         function animateMarker(marker, newLatLng, duration = 1000) {
@@ -719,22 +728,29 @@
         function updateMap(drivers) {
             const bounds = [];
             const currentPhones = new Set(drivers.map(d => d.phone));
+            let markersCreated = 0;
+
+            console.log(`[MAP] Processing ${drivers.length} drivers for map update`);
 
             drivers.forEach(driver => {
-                const lat = driver.latitude;
-                const lng = driver.longitude;
+                const lat = parseFloat(driver.latitude);
+                const lng = parseFloat(driver.longitude);
                 const phone = driver.phone;
                 
-                if (isNaN(lat) || isNaN(lng) || 
-                    lat < -90 || lat > 90 || 
-                    lng < -180 || lng > 180) {
+                console.log(`[MAP] Driver ${driver.name} (${phone}): lat=${lat}, lng=${lng}, raw_lat=${driver.latitude}, raw_lng=${driver.longitude}`);
+                
+                if (isNaN(lat) || isNaN(lng)) {
+                    console.warn(`[MAP] ❌ Invalid coordinates for ${driver.name} (${phone}): lat=${lat}, lng=${lng}`);
+                    return;
+                }
+                
+                if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                    console.warn(`[MAP] ❌ Out of range coordinates for ${driver.name} (${phone}): lat=${lat}, lng=${lng}`);
                     return;
                 }
 
                 const moving = isMoving(driver);
                 bounds.push([lat, lng]);
-
-                lastPositions[phone] = { lat, lng, time: Date.now() };
 
                 if (!routes[phone]) {
                     routes[phone] = [];
@@ -783,8 +799,11 @@
                         animateMarker(markers[phone], newLatLng, 1000);
                     }
                     markers[phone].setIcon(customIcon);
+                    console.log(`[MAP] ✅ Updated marker for ${driver.name} (${phone})`);
                 } else {
                     markers[phone] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+                    markersCreated++;
+                    console.log(`[MAP] ✅ Created NEW marker for ${driver.name} (${phone}) at [${lat}, ${lng}]`);
                 }
 
                 const time = new Date(driver.lastUpdateTime).toLocaleString('en-IN');
@@ -800,6 +819,7 @@
 
             Object.keys(markers).forEach(phone => {
                 if (!currentPhones.has(phone)) {
+                    console.log(`[MAP] 🗑️ Removing marker for phone ${phone} (no longer in dataset)`);
                     if (markers[phone]) {
                         map.removeLayer(markers[phone]);
                         delete markers[phone];
@@ -814,9 +834,12 @@
                 }
             });
 
-            if (bounds.length > 0 && Object.keys(markers).length === drivers.length) {
+            if (bounds.length > 0) {
+                console.log(`[MAP] 🗺️ Auto-fitting map to ${bounds.length} locations`);
                 map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
             }
+
+            console.log(`[MAP] Summary: ${markersCreated} new markers created, ${Object.keys(markers).length} total markers on map`);
         }
 
         function getTimeAgo(timestamp) {
@@ -891,6 +914,8 @@
 
             drivers.forEach(driver => {
                 const phone = driver.phone;
+                const lat = parseFloat(driver.latitude);
+                const lng = parseFloat(driver.longitude);
                 const moving = driver.trackingState !== 'STOPPED' && isMoving(driver);
                 const timeAgo = getTimeAgo(driver.lastUpdateTime);
 
@@ -946,7 +971,7 @@
                             <button class="action-btn btn-update" onclick="refreshData()">Update</button>
                             <a href="tel:${phone}" class="action-btn btn-call">Call</a>
                             <a href="https://wa.me/91${phone}" target="_blank" class="action-btn btn-whatsapp">WhatsApp</a>
-                            <button class="action-btn btn-map" onclick="focusOnDriver(${driver.latitude}, ${driver.longitude}, '${phone}')">View on Map</button>
+                            <button class="action-btn btn-map" onclick="focusOnDriver(${lat}, ${lng}, '${phone}')">View on Map</button>
                         </div>
                     `;
                     
@@ -963,10 +988,35 @@
         }
 
         function focusOnDriver(lat, lng, phone) {
+            console.log(`[FOCUS] Focusing on driver ${phone} at [${lat}, ${lng}]`);
+            
             map.setView([lat, lng], 16, { animate: true, duration: 1 });
+            
             if (markers[phone]) {
-                setTimeout(() => markers[phone].openPopup(), 500);
+                setTimeout(() => {
+                    markers[phone].openPopup();
+                    console.log(`[FOCUS] ✅ Opened popup for existing marker`);
+                }, 500);
+            } else {
+                console.warn(`[FOCUS] ⚠️ Marker for ${phone} doesn't exist yet, creating temporary marker`);
+                const tempIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: #FF5722; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 12px rgba(0,0,0,0.4);"></div>`,
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
+                });
+                
+                const tempMarker = L.marker([lat, lng], { icon: tempIcon }).addTo(map);
+                tempMarker.bindPopup(`<strong>Loading driver location...</strong><br>📱 ${phone}`).openPopup();
+                
+                setTimeout(() => {
+                    if (!markers[phone]) {
+                        map.removeLayer(tempMarker);
+                        console.log(`[FOCUS] Removed temporary marker after timeout`);
+                    }
+                }, 3000);
             }
+            
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -978,6 +1028,8 @@
             smoothUpdateElement(document.getElementById('movingCount'), movingDrivers.toString());
             smoothUpdateElement(document.getElementById('totalCount'), drivers.length.toString());
             
+            console.log(`[STATS] Active: ${activeDrivers}, Moving: ${movingDrivers}, Total: ${drivers.length}`);
+            
             const now = new Date();
             document.getElementById('lastUpdateTime').textContent = 
                 now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -988,6 +1040,7 @@
 
         async function refreshData() {
             try {
+                console.log(`[API] Fetching data from ${API_URL}`);
                 const response = await fetch(API_URL + '?t=' + Date.now(), { 
                     cache: 'no-cache',
                     mode: 'cors'
@@ -998,13 +1051,21 @@
                 }
                 
                 const result = await response.json();
+                console.log('[API] Raw response:', result);
                 
                 if (result.status !== 'success') {
                     throw new Error(result.message || 'API returned error status');
                 }
 
                 const allDrivers = result.drivers || [];
+                console.log(`[API] Received ${allDrivers.length} total drivers`);
+                
                 const activeDrivers = allDrivers.filter(d => d.trackingState === 'ACTIVE');
+                console.log(`[API] Filtered to ${activeDrivers.length} ACTIVE drivers`);
+                
+                if (activeDrivers.length > 0) {
+                    console.log('[API] Sample driver data:', activeDrivers[0]);
+                }
 
                 updateStats(activeDrivers);
                 updateMap(activeDrivers);
@@ -1012,7 +1073,7 @@
                 
                 nextRefreshTime = Date.now() + REFRESH_INTERVAL;
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('[API] ❌ Error fetching data:', error);
                 document.getElementById('activeStatus').textContent = 'Connection error';
             }
         }
@@ -1024,10 +1085,12 @@
         }
 
         window.onload = function() {
+            console.log('[INIT] Dashboard initializing...');
             initMap();
             refreshData();
             startAutoRefresh();
             startCountdown();
+            console.log('[INIT] ✅ Dashboard initialized successfully');
         };
 
         window.onbeforeunload = function() {
