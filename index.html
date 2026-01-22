@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driver Tracking - Roshi Transport</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <style>
         * {
             margin: 0;
@@ -16,56 +17,135 @@
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #FFF8E7 0%, #F5E6D3 100%);
             min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 500px;
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 25px 20px;
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(255, 165, 0, 0.3);
+            padding: 16px 20px;
+            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
-        .header h1 {
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-icon {
+            font-size: 2em;
+            line-height: 1;
+        }
+
+        .header-text h1 {
             color: #2C1810;
-            font-size: 1.8em;
+            font-size: 1.5em;
             font-weight: 700;
-            margin-bottom: 8px;
+            line-height: 1.2;
         }
 
-        .header p {
+        .header-subtitle {
             color: #5D4037;
-            font-size: 1em;
-            font-weight: 400;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .status-badge.inactive {
+            background: rgba(255, 255, 255, 0.3);
+            color: #5D4037;
+            border: 2px solid #5D4037;
+        }
+
+        .status-badge.active {
+            background: #4CAF50;
+            color: white;
+            border: 2px solid #45a049;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.02); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 20px;
+            min-height: calc(100vh - 100px);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            max-height: calc(100vh - 140px);
         }
 
         .card {
             background: white;
             border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            color: #2C1810;
+            font-size: 1.1em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #FFE4B5;
+        }
+
+        .card-title-icon {
+            font-size: 1.3em;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .form-group label {
             display: block;
             color: #5D4037;
-            font-size: 0.9em;
+            font-size: 0.85em;
             font-weight: 600;
             margin-bottom: 8px;
             text-transform: uppercase;
@@ -74,715 +154,735 @@
 
         .form-group input {
             width: 100%;
-            padding: 15px;
+            padding: 14px 16px;
             border: 2px solid #FFE4B5;
             border-radius: 12px;
             font-family: 'Poppins', sans-serif;
             font-size: 1em;
             color: #2C1810;
-            transition: all 0.3s ease;
             background: #FFFBF0;
+            transition: all 0.3s ease;
         }
 
         .form-group input:focus {
             outline: none;
             border-color: #FFD700;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
-        }
-
-        .toggle-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 15px;
-            background: #FFFBF0;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-
-        .toggle-group label {
-            color: #5D4037;
-            font-size: 0.9em;
-            font-weight: 600;
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 50px;
-            height: 26px;
-            background: #ccc;
-            border-radius: 13px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .toggle-switch.active {
-            background: #4CAF50;
-        }
-
-        .toggle-switch::after {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
+            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.15);
             background: white;
-            border-radius: 50%;
-            top: 3px;
-            left: 3px;
-            transition: left 0.3s;
         }
 
-        .toggle-switch.active::after {
-            left: 27px;
-        }
-
-        .status-indicator {
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            font-weight: 600;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .status-inactive {
+        .form-group input:disabled {
             background: #F5F5F5;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, #FFFBF0 0%, #FFF8E7 100%);
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid #FFE4B5;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .info-card:hover {
+            transform: scale(1.05);
+            border-color: #FFD700;
+        }
+
+        .info-card-label {
+            color: #8D6E63;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .info-card-value {
+            color: #2C1810;
+            font-size: 1.1em;
+            font-weight: 700;
+            word-break: break-all;
+        }
+
+        .info-card-value.state-active {
+            color: #4CAF50;
+        }
+
+        .info-card-value.state-inactive {
             color: #757575;
-            display: block;
-        }
-
-        .status-active {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-            color: white;
-            display: none;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.85; }
         }
 
         .button-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 20px;
+            gap: 10px;
         }
 
         .btn {
-            padding: 16px 20px;
+            padding: 14px 20px;
             border: none;
             border-radius: 12px;
             font-family: 'Poppins', sans-serif;
-            font-size: 0.95em;
+            font-size: 0.9em;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn:disabled::before {
+            display: none;
         }
 
         .btn-start {
             background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
         }
 
         .btn-start:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
         }
 
         .btn-stop {
             background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
         }
 
         .btn-stop:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
-        }
-
-        .btn-cancel {
-            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
-            grid-column: span 2;
-        }
-
-        .btn-cancel:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
-        }
-
-        .btn-update {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #2C1810;
-            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.3);
-            grid-column: span 2;
-        }
-
-        .btn-update:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 165, 0, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(244, 67, 54, 0.5);
         }
 
         .btn-navigate {
             background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
             grid-column: span 2;
         }
 
         .btn-navigate:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.5);
         }
 
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .btn-update {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #2C1810;
+            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
+            grid-column: span 2;
         }
 
-        .stats-box {
-            background: #FFFBF0;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 15px;
+        .btn-update:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 165, 0, 0.5);
+        }
+
+        .map-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 500px;
+        }
+
+        .map-overlay {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 14px 18px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            font-size: 0.85em;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .map-overlay-title {
+            font-weight: 700;
+            color: #2C1810;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .map-overlay-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .map-overlay-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .map-legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .alert-box {
+            background: linear-gradient(135deg, #FFF3CD 0%, #FFE4B5 100%);
+            border: 2px solid #FFD700;
+            border-radius: 16px;
+            padding: 16px;
+            font-size: 0.85em;
+            color: #856404;
+            line-height: 1.6;
+        }
+
+        .alert-box-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .alert-box-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .alert-icon {
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .loading {
             display: none;
+            text-align: center;
+            padding: 40px 20px;
+            color: #8D6E63;
         }
 
-        .stats-box.show {
+        .loading.show {
             display: block;
         }
 
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.9em;
+        .spinner {
+            border: 4px solid #FFE4B5;
+            border-top: 4px solid #FFD700;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
         }
 
-        .stat-item:last-child {
-            margin-bottom: 0;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        .stat-label {
-            color: #8D6E63;
-            font-weight: 500;
-        }
+        /* Mobile Optimizations */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 15px;
+                min-height: auto;
+            }
 
-        .stat-value {
-            color: #2C1810;
-            font-weight: 700;
-        }
+            .sidebar {
+                max-height: none;
+            }
 
-        .info-box {
-            background: #FFF8E7;
-            border: 2px solid #FFE4B5;
-            border-radius: 12px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-
-        .info-box p {
-            color: #5D4037;
-            font-size: 0.85em;
-            line-height: 1.6;
-            margin-bottom: 8px;
-        }
-
-        .info-box p:last-child {
-            margin-bottom: 0;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 400px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-content h2 {
-            color: #2C1810;
-            margin-bottom: 15px;
-        }
-
-        .modal-content p {
-            color: #5D4037;
-            margin-bottom: 25px;
-            line-height: 1.6;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .modal-buttons button {
-            flex: 1;
-        }
-
-        footer {
-            text-align: center;
-            color: #8D6E63;
-            font-size: 0.85em;
-            margin-top: 20px;
+            #map {
+                min-height: 450px;
+            }
         }
 
         @media (max-width: 768px) {
-            body {
-                padding: 12px;
-                justify-content: flex-start;
-            }
-
             .header {
-                margin-bottom: 20px;
-                padding: 20px 15px;
-                border-radius: 16px;
+                padding: 12px 15px;
             }
 
-            .header h1 {
+            .header-content {
+                gap: 10px;
+            }
+
+            .header-icon {
                 font-size: 1.5em;
-                margin-bottom: 6px;
             }
 
-            .header p {
-                font-size: 0.9em;
+            .header-text h1 {
+                font-size: 1.2em;
+            }
+
+            .header-subtitle {
+                font-size: 0.75em;
+            }
+
+            .status-badge {
+                padding: 6px 12px;
+                font-size: 0.75em;
+            }
+
+            .container {
+                padding: 12px;
+                gap: 12px;
             }
 
             .card {
-                padding: 20px 16px;
+                padding: 16px;
                 border-radius: 16px;
-                margin-bottom: 16px;
+            }
+
+            .card-title {
+                font-size: 1em;
+                margin-bottom: 12px;
             }
 
             .form-group {
-                margin-bottom: 16px;
-            }
-
-            .form-group label {
-                font-size: 0.85em;
-                margin-bottom: 6px;
+                margin-bottom: 12px;
             }
 
             .form-group input {
-                padding: 14px 12px;
-                font-size: 16px;
-                border-radius: 10px;
+                padding: 12px 14px;
+                font-size: 16px; /* Prevents zoom on iOS */
             }
 
-            .toggle-group {
-                padding: 12px;
-                border-radius: 10px;
-                margin-bottom: 16px;
+            .info-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
             }
 
-            .toggle-group label {
+            .info-card {
+                padding: 10px;
+            }
+
+            .info-card-label {
+                font-size: 0.7em;
+            }
+
+            .info-card-value {
+                font-size: 1em;
+            }
+
+            .button-group {
+                gap: 8px;
+            }
+
+            .btn {
+                padding: 12px 16px;
                 font-size: 0.85em;
-                flex: 1;
-                margin-right: 10px;
             }
 
-            .status-indicator {
-                padding: 12px;
-                border-radius: 10px;
-                margin-bottom: 16px;
+            #map {
+                min-height: 400px;
+            }
+
+            .map-overlay {
+                top: 10px;
+                right: 10px;
+                padding: 10px 14px;
+                font-size: 0.75em;
+            }
+
+            .map-overlay-title {
                 font-size: 0.9em;
+                margin-bottom: 6px;
+            }
+
+            .alert-box {
+                padding: 12px;
+                font-size: 0.8em;
+            }
+
+            .alert-box-item {
+                margin-bottom: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .header-left {
+                gap: 8px;
+            }
+
+            .header-icon {
+                font-size: 1.3em;
+            }
+
+            .header-text h1 {
+                font-size: 1.1em;
+            }
+
+            .status-badge {
+                align-self: flex-start;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .info-card {
+                padding: 12px;
             }
 
             .button-group {
                 grid-template-columns: 1fr;
                 gap: 10px;
-                margin-top: 16px;
             }
 
-            .btn {
-                padding: 14px 16px;
-                font-size: 0.9em;
-                letter-spacing: 0.3px;
-            }
-
-            .btn-cancel,
-            .btn-update,
-            .btn-navigate {
+            .btn-navigate,
+            .btn-update {
                 grid-column: span 1;
             }
 
-            .stats-box {
-                padding: 12px;
-                margin-top: 12px;
-                border-radius: 8px;
+            #map {
+                min-height: 350px;
             }
 
-            .stat-item {
-                font-size: 0.85em;
-                margin-bottom: 6px;
-            }
-
-            .info-box {
-                padding: 12px;
-                margin-top: 16px;
-                border-radius: 10px;
-            }
-
-            .info-box p {
-                font-size: 0.8em;
-                line-height: 1.5;
-                margin-bottom: 6px;
-            }
-
-            .modal-content {
-                padding: 24px 20px;
-                width: 92%;
-                max-width: 340px;
-                border-radius: 16px;
-            }
-
-            .modal-content h2 {
-                font-size: 1.3em;
-                margin-bottom: 12px;
-            }
-
-            .modal-content p {
-                font-size: 0.9em;
-                margin-bottom: 20px;
-                line-height: 1.5;
-            }
-
-            .modal-buttons {
-                gap: 8px;
-                flex-direction: column;
-            }
-
-            .modal-buttons button {
-                width: 100%;
-            }
-
-            footer {
-                font-size: 0.75em;
-                margin-top: 16px;
-                padding: 0 8px;
+            .map-overlay {
+                top: 8px;
+                right: 8px;
+                left: 8px;
+                padding: 8px 12px;
             }
         }
 
         @media (max-width: 360px) {
-            body {
+            .header {
+                padding: 10px 12px;
+            }
+
+            .container {
                 padding: 10px;
             }
 
-            .header h1 {
-                font-size: 1.3em;
-            }
-
             .card {
-                padding: 16px 12px;
-            }
-
-            .form-group input {
-                padding: 12px 10px;
+                padding: 14px;
             }
 
             .btn {
-                padding: 12px 14px;
-                font-size: 0.85em;
+                padding: 10px 14px;
+                font-size: 0.8em;
+            }
+
+            #map {
+                min-height: 300px;
+            }
+        }
+
+        /* Touch feedback for mobile */
+        @media (hover: none) {
+            .btn:active:not(:disabled) {
+                transform: scale(0.98);
+            }
+
+            .info-card:active {
+                transform: scale(1.02);
             }
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="header-icon">🚛</div>
+                <div class="header-text">
+                    <h1>Driver Tracking</h1>
+                    <div class="header-subtitle">Roshi Transport Corporation</div>
+                </div>
+            </div>
+            <div class="status-badge inactive" id="headerStatus">
+                <span>🔴</span>
+                <span>Inactive</span>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
-        <div class="header">
-            <h1>Driver Tracking</h1>
-            <p>Roshi Transport Corporation</p>
-        </div>
-
-        <div class="card">
-            <div class="status-indicator status-inactive" id="statusInactive">
-                🔴 Tracking Inactive
-            </div>
-            <div class="status-indicator status-active" id="statusActive">
-                🟢 Tracking Active - Updating Every 10s
-            </div>
-
-            <div class="form-group">
-                <label>Driver Name</label>
-                <input type="text" id="driverName" placeholder="Enter your name">
-            </div>
-
-            <div class="form-group">
-                <label>Mobile Number</label>
-                <input type="tel" id="driverMobile" placeholder="Enter 10 digit mobile number" maxlength="10">
-            </div>
-
-            <div class="toggle-group">
-                <label>Show Speed & GPS Accuracy</label>
-                <div class="toggle-switch" id="toggleStats" onclick="toggleStatsDisplay()"></div>
-            </div>
-
-            <div class="button-group">
-                <button class="btn btn-start" id="startBtn" onclick="confirmStart()">
-                    Start Journey
-                </button>
-                <button class="btn btn-stop" id="stopBtn" onclick="confirmStop()" disabled>
-                    Stop Journey
-                </button>
-                <button class="btn btn-navigate" id="navigateBtn" onclick="openNavigation()">
-                    Navigate Me
-                </button>
-                <button class="btn btn-cancel" id="cancelBtn" onclick="cancelJourney()" disabled style="display: none;">
-                    Cancel Journey
-                </button>
-                <button class="btn btn-update" id="updateBtn" onclick="forceUpdate()" disabled style="display: none;">
-                    Update Now
-                </button>
-            </div>
-
-            <div class="stats-box" id="statsBox">
-                <div class="stat-item">
-                    <span class="stat-label">Last Update:</span>
-                    <span class="stat-value" id="lastUpdate">-</span>
+        <div class="sidebar">
+            <!-- Driver Information Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="card-title-icon">👤</span>
+                    <span>Driver Information</span>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Updates Sent:</span>
-                    <span class="stat-value" id="updateCount">0</span>
+                <div class="form-group">
+                    <label>Driver Name</label>
+                    <input type="text" id="driverName" placeholder="Enter your name">
                 </div>
-                <div class="stat-item" id="speedStat" style="display: none;">
-                    <span class="stat-label">Speed:</span>
-                    <span class="stat-value" id="speedValue">- km/h</span>
-                </div>
-                <div class="stat-item" id="accuracyStat" style="display: none;">
-                    <span class="stat-label">GPS Accuracy:</span>
-                    <span class="stat-value" id="accuracyValue">- meters</span>
+                <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="tel" id="driverMobile" placeholder="10 digit number" maxlength="10">
                 </div>
             </div>
 
-            <div class="info-box">
-                <p><strong>📱 Important:</strong> Keep this page open in your browser while driving.</p>
-                <p><strong>🔋 Tip:</strong> Connect your phone to charger for best results.</p>
-                <p><strong>📍 Privacy:</strong> Location tracking only active during journey.</p>
+            <!-- Current Status Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="card-title-icon">📊</span>
+                    <span>Live Status</span>
+                </div>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-card-label">Tracking</div>
+                        <div class="info-card-value state-inactive" id="trackingState">INACTIVE</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-card-label">Updates</div>
+                        <div class="info-card-value" id="updateCount">0</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-card-label">Latitude</div>
+                        <div class="info-card-value" id="latDisplay">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-card-label">Longitude</div>
+                        <div class="info-card-value" id="lngDisplay">-</div>
+                    </div>
+                    <div class="info-card" style="grid-column: span 2;">
+                        <div class="info-card-label">Last Update</div>
+                        <div class="info-card-value" id="lastUpdate">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="card-title-icon">🎮</span>
+                    <span>Controls</span>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-start" id="startBtn" onclick="startJourney()">
+                        <span>▶️</span>
+                        <span>Start</span>
+                    </button>
+                    <button class="btn btn-stop" id="stopBtn" onclick="stopJourney()" disabled>
+                        <span>⏹️</span>
+                        <span>Stop</span>
+                    </button>
+                    <button class="btn btn-navigate" id="navigateBtn" onclick="openNavigation()">
+                        <span>🗺️</span>
+                        <span>Navigate Me</span>
+                    </button>
+                    <button class="btn btn-update" id="updateBtn" onclick="forceUpdate()" disabled>
+                        <span>🔄</span>
+                        <span>Update Now</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Important Notes -->
+            <div class="alert-box">
+                <div class="alert-box-item">
+                    <span class="alert-icon">📱</span>
+                    <span>Keep page open while driving</span>
+                </div>
+                <div class="alert-box-item">
+                    <span class="alert-icon">🔋</span>
+                    <span>Connect to charger recommended</span>
+                </div>
+                <div class="alert-box-item">
+                    <span class="alert-icon">📍</span>
+                    <span>GPS must be enabled</span>
+                </div>
+                <div class="alert-box-item">
+                    <span class="alert-icon">⏱️</span>
+                    <span>Updates every 10 seconds</span>
+                </div>
             </div>
         </div>
 
-        <footer>
-            <p>© 2024 Roshi Transport Corporation. All rights reserved.</p>
-        </footer>
-    </div>
-
-    <div class="modal" id="startModal">
-        <div class="modal-content">
-            <h2>Start Journey?</h2>
-            <p>This will start tracking your location every 10 seconds. Make sure to keep this page open.</p>
-            <div class="modal-buttons">
-                <button class="btn btn-cancel" onclick="closeModal('startModal')">Cancel</button>
-                <button class="btn btn-start" onclick="startTracking()">Start</button>
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-overlay">
+                <div class="map-overlay-title">📍 Map Legend</div>
+                <div class="map-overlay-item">
+                    <div class="map-legend-dot" style="background: #4CAF50;"></div>
+                    <span>Current Position</span>
+                </div>
+                <div class="map-overlay-item">
+                    <div class="map-legend-dot" style="background: #2196F3;"></div>
+                    <span>Movement Path</span>
+                </div>
+            </div>
+            <div class="loading" id="mapLoading">
+                <div class="spinner"></div>
+                <div>Loading map...</div>
             </div>
         </div>
     </div>
 
-    <div class="modal" id="stopModal">
-        <div class="modal-content">
-            <h2>Stop Journey?</h2>
-            <p>This will stop location tracking. Your last location will be saved.</p>
-            <div class="modal-buttons">
-                <button class="btn btn-cancel" onclick="closeModal('stopModal')">Cancel</button>
-                <button class="btn btn-stop" onclick="stopTracking()">Stop</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="thankYouModal">
-        <div class="modal-content">
-            <h2>✅ Journey Stopped</h2>
-            <p>Thank you for using Roshi Transport tracking system. Drive safe!</p>
-            <button class="btn btn-start" onclick="closeModal('thankYouModal')" style="width: 100%;">Close</button>
-        </div>
-    </div>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script>
+        // Backend API Configuration
         const API_URL = 'https://script.google.com/macros/s/AKfycbzFwItcBCBlpZ6P89FTEUjrDt4A117eyOwieT2fvgAXMU6DwnApGSjRZWmFpr9ooe2xFA/exec';
+        
+        // State Management
+        let map = null;
+        let driverMarker = null;
+        let pathPolyline = null;
+        let pathCoordinates = [];
         let trackingInterval = null;
         let updateCount = 0;
-        let driverData = {};
-        let showStats = false;
+        let isTracking = false;
         let routeOrigin = '';
         let routeDestination = '';
+        
+        // Custom marker icons
+        const driverIcon = L.divIcon({
+            className: 'custom-driver-marker',
+            html: '<div style="background: #4CAF50; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+        });
 
+        // Initialize on page load
         window.onload = function() {
+            initializeMap();
+            loadRouteParameters();
+            loadSavedData();
+            startBackendPolling();
+        };
+
+        // Initialize Leaflet map with OpenStreetMap tiles (free)
+        function initializeMap() {
+            document.getElementById('mapLoading').classList.add('show');
+            
+            map = L.map('map').setView([20.5937, 78.9629], 5); // Center of India
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            map.on('load', function() {
+                document.getElementById('mapLoading').classList.remove('show');
+            });
+
+            setTimeout(() => {
+                document.getElementById('mapLoading').classList.remove('show');
+            }, 2000);
+        }
+
+        // Load route parameters from URL
+        function loadRouteParameters() {
             const urlParams = new URLSearchParams(window.location.search);
             routeOrigin = urlParams.get('origin') || '';
             routeDestination = urlParams.get('destination') || '';
+        }
 
-            const saved = localStorage.getItem('driverTracking');
+        // Load saved driver data from localStorage
+        function loadSavedData() {
+            const saved = localStorage.getItem('roshiDriverData');
             if (saved) {
                 const data = JSON.parse(saved);
                 document.getElementById('driverName').value = data.name || '';
                 document.getElementById('driverMobile').value = data.mobile || '';
+                updateCount = data.updateCount || 0;
+                document.getElementById('updateCount').textContent = updateCount;
                 
-                if (data.isTracking) {
-                    driverData = data;
-                    updateCount = data.updateCount || 0;
-                    resumeTracking();
+                if (data.pathCoordinates) {
+                    pathCoordinates = data.pathCoordinates;
+                    drawPath();
                 }
             }
-        };
-
-        function openNavigation() {
-            if (!routeOrigin || !routeDestination) {
-                alert('Route information not available. Please return to the Approved Route page.');
-                return;
-            }
-
-            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(routeOrigin)}&destination=${encodeURIComponent(routeDestination)}&travelmode=driving`;
-            window.open(mapsUrl, '_blank');
         }
 
-        function toggleStatsDisplay() {
-            showStats = !showStats;
-            const toggle = document.getElementById('toggleStats');
-            toggle.classList.toggle('active');
-            
-            if (showStats) {
-                document.getElementById('speedStat').style.display = 'flex';
-                document.getElementById('accuracyStat').style.display = 'flex';
-            } else {
-                document.getElementById('speedStat').style.display = 'none';
-                document.getElementById('accuracyStat').style.display = 'none';
-            }
+        // Save driver data to localStorage
+        function saveData() {
+            const data = {
+                name: document.getElementById('driverName').value,
+                mobile: document.getElementById('driverMobile').value,
+                updateCount: updateCount,
+                pathCoordinates: pathCoordinates,
+                isTracking: isTracking
+            };
+            localStorage.setItem('roshiDriverData', JSON.stringify(data));
         }
 
-        function confirmStart() {
+        // Start tracking journey
+        function startJourney() {
             const name = document.getElementById('driverName').value.trim();
             const mobile = document.getElementById('driverMobile').value.trim();
 
             if (!name) {
-                alert('Please enter your name');
+                alert('❌ Please enter your name');
                 return;
             }
 
             if (!mobile || mobile.length !== 10 || !/^\d+$/.test(mobile)) {
-                alert('Please enter valid 10 digit mobile number');
+                alert('❌ Please enter a valid 10-digit mobile number');
                 return;
             }
-
-            showModal('startModal');
-        }
-
-        function confirmStop() {
-            showModal('stopModal');
-        }
-
-        function showModal(id) {
-            document.getElementById(id).classList.add('show');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('show');
-        }
-
-        function startTracking() {
-            closeModal('startModal');
 
             if (!navigator.geolocation) {
-                alert('Geolocation is not supported by your browser');
+                alert('❌ Geolocation is not supported by your browser');
                 return;
             }
 
-            const name = document.getElementById('driverName').value.trim();
-            const mobile = document.getElementById('driverMobile').value.trim();
-
-            driverData = {
-                name: name,
-                mobile: mobile,
-                isTracking: true,
-                updateCount: 0
-            };
-
-            document.getElementById('driverName').disabled = true;
-            document.getElementById('driverMobile').disabled = true;
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('cancelBtn').style.display = 'block';
-            document.getElementById('cancelBtn').disabled = false;
-            document.getElementById('updateBtn').style.display = 'block';
-            document.getElementById('updateBtn').disabled = false;
-            document.getElementById('statusInactive').style.display = 'none';
-            document.getElementById('statusActive').style.display = 'block';
-            document.getElementById('statsBox').classList.add('show');
-
-            sendLocationStart();
-            trackingInterval = setInterval(sendLocationUpdate, 10000);
-
-            localStorage.setItem('driverTracking', JSON.stringify(driverData));
-        }
-
-        function resumeTracking() {
-            document.getElementById('driverName').disabled = true;
-            document.getElementById('driverMobile').disabled = true;
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('cancelBtn').style.display = 'block';
-            document.getElementById('cancelBtn').disabled = false;
-            document.getElementById('updateBtn').style.display = 'block';
-            document.getElementById('updateBtn').disabled = false;
-            document.getElementById('statusInactive').style.display = 'none';
-            document.getElementById('statusActive').style.display = 'block';
-            document.getElementById('statsBox').classList.add('show');
-            document.getElementById('updateCount').textContent = updateCount;
-
-            trackingInterval = setInterval(sendLocationUpdate, 10000);
-        }
-
-        function stopTracking() {
-            closeModal('stopModal');
-            
-            if (trackingInterval) {
-                clearInterval(trackingInterval);
-                trackingInterval = null;
-            }
-
-            sendLocationStop();
-        }
-
-        function cancelJourney() {
-            if (confirm('Cancel journey? This will stop tracking immediately.')) {
-                stopTracking();
-            }
-        }
-
-        function forceUpdate() {
-            sendLocationUpdate();
-        }
-
-        function sendLocationStart() {
+            // Get current location and send start request
             navigator.geolocation.getCurrentPosition(
                 function(position) {
                     const payload = {
                         action: "start",
-                        name: driverData.name,
-                        phone: driverData.mobile,
+                        name: name,
+                        phone: mobile,
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude
                     };
@@ -796,38 +896,86 @@
                     .then(response => response.json())
                     .then(data => {
                         console.log('Start response:', data);
+                        isTracking = true;
                         updateCount++;
-                        document.getElementById('updateCount').textContent = updateCount;
-                        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
-                        
-                        if (showStats) {
-                            const speed = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0;
-                            const accuracy = Math.round(position.coords.accuracy);
-                            document.getElementById('speedValue').textContent = speed + ' km/h';
-                            document.getElementById('accuracyValue').textContent = accuracy + ' meters';
-                        }
-                        
-                        driverData.updateCount = updateCount;
-                        localStorage.setItem('driverTracking', JSON.stringify(driverData));
+                        pathCoordinates = [[position.coords.latitude, position.coords.longitude]];
+                        updateUI();
+                        updateMarker(position.coords.latitude, position.coords.longitude);
+                        startLocationTracking();
+                        saveData();
                     })
                     .catch(error => {
-                        console.error('Network error on start:', error);
+                        console.error('Error starting journey:', error);
+                        alert('❌ Failed to start journey. Please check your connection.');
                     });
                 },
                 function(error) {
                     console.error('Geolocation error:', error);
-                    alert('Unable to get location. Please enable GPS and refresh the page.');
+                    alert('❌ Unable to get your location. Please enable GPS and try again.');
                 },
                 { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );
         }
 
+        // Stop tracking journey
+        function stopJourney() {
+            if (!confirm('⏹️ Stop journey? Your tracking will be ended.')) {
+                return;
+            }
+
+            const mobile = document.getElementById('driverMobile').value.trim();
+            const payload = {
+                action: "stop",
+                phone: mobile
+            };
+
+            fetch(API_URL, {
+                redirect: 'follow',
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Stop response:', data);
+                stopLocationTracking();
+                alert('✅ Journey stopped successfully. Thank you!');
+            })
+            .catch(error => {
+                console.error('Error stopping journey:', error);
+                stopLocationTracking();
+                alert('⚠️ Journey stopped (network error, but request may have succeeded).');
+            });
+        }
+
+        // Start sending location updates every 10 seconds
+        function startLocationTracking() {
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+            }
+            trackingInterval = setInterval(sendLocationUpdate, 10000);
+        }
+
+        // Stop sending location updates
+        function stopLocationTracking() {
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+                trackingInterval = null;
+            }
+            isTracking = false;
+            pathCoordinates = [];
+            updateUI();
+            saveData();
+        }
+
+        // Send location update to backend
         function sendLocationUpdate() {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
+                    const mobile = document.getElementById('driverMobile').value.trim();
                     const payload = {
                         action: "update",
-                        phone: driverData.mobile,
+                        phone: mobile,
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude
                     };
@@ -846,23 +994,18 @@
                             console.warn('Row not found - tracking continues');
                         } else if (data.trackingState === "STOPPED") {
                             console.log('Backend returned STOPPED - forcing stop');
-                            forceStopUI();
+                            stopLocationTracking();
+                            alert('⚠️ Tracking has been stopped by administrator.');
                             return;
                         }
                         
                         updateCount++;
+                        pathCoordinates.push([position.coords.latitude, position.coords.longitude]);
+                        updateMarker(position.coords.latitude, position.coords.longitude);
+                        drawPath();
                         document.getElementById('updateCount').textContent = updateCount;
                         document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
-                        
-                        if (showStats) {
-                            const speed = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0;
-                            const accuracy = Math.round(position.coords.accuracy);
-                            document.getElementById('speedValue').textContent = speed + ' km/h';
-                            document.getElementById('accuracyValue').textContent = accuracy + ' meters';
-                        }
-                        
-                        driverData.updateCount = updateCount;
-                        localStorage.setItem('driverTracking', JSON.stringify(driverData));
+                        saveData();
                     })
                     .catch(error => {
                         console.error('Network error on update:', error);
@@ -875,53 +1018,138 @@
             );
         }
 
-        function sendLocationStop() {
-            const payload = {
-                action: "stop",
-                phone: driverData.mobile
-            };
-
-            fetch(API_URL, {
-                redirect: 'follow',
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Stop response:', data);
-                resetUI();
-                showModal('thankYouModal');
-            })
-            .catch(error => {
-                console.error('Error stopping:', error);
-                resetUI();
-                showModal('thankYouModal');
-            });
+        // Force immediate location update
+        function forceUpdate() {
+            sendLocationUpdate();
         }
 
-        function forceStopUI() {
-            if (trackingInterval) {
-                clearInterval(trackingInterval);
-                trackingInterval = null;
+        // Poll backend every 5 seconds to get current driver status
+        function startBackendPolling() {
+            setInterval(pollBackend, 5000);
+        }
+
+        // Poll backend for current driver data
+        function pollBackend() {
+            const mobile = document.getElementById('driverMobile').value.trim();
+            if (!mobile || mobile.length !== 10) {
+                return;
             }
-            resetUI();
-            alert('Tracking has been stopped by administrator.');
+
+            fetch(`${API_URL}?phone=${mobile}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success" && data.driver) {
+                        updateDriverInfo(data.driver);
+                    }
+                })
+                .catch(error => {
+                    console.error('Polling error:', error);
+                });
         }
 
-        function resetUI() {
-            document.getElementById('driverName').disabled = false;
-            document.getElementById('driverMobile').disabled = false;
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('cancelBtn').style.display = 'none';
-            document.getElementById('updateBtn').style.display = 'none';
-document.getElementById('statusInactive').style.display = 'block';
-document.getElementById('statusActive').style.display = 'none';
-document.getElementById('statsBox').classList.remove('show');
-        localStorage.removeItem('driverTracking');
-        updateCount = 0;
-    }
-</script>
+        // Update driver information from backend response
+        function updateDriverInfo(driver) {
+            const stateEl = document.getElementById('trackingState');
+            stateEl.textContent = driver.trackingState || 'UNKNOWN';
+            stateEl.className = 'info-card-value ' + (driver.trackingState === 'ACTIVE' ? 'state-active' : 'state-inactive');
+            
+            document.getElementById('latDisplay').textContent = driver.latitude || '-';
+            document.getElementById('lngDisplay').textContent = driver.longitude || '-';
+            
+            if (driver.lastUpdate) {
+                document.getElementById('lastUpdate').textContent = new Date(driver.lastUpdate).toLocaleTimeString('en-IN');
+            }
+
+            // Update marker if coordinates exist
+            if (driver.latitude && driver.longitude) {
+                updateMarker(parseFloat(driver.latitude), parseFloat(driver.longitude));
+            }
+
+            // Update UI based on tracking state
+            if (driver.trackingState === 'ACTIVE' && !isTracking) {
+                // Backend says active but UI doesn't think so - sync up
+                isTracking = true;
+                updateUI();
+            } else if (driver.trackingState === 'STOPPED' && isTracking) {
+                // Backend says stopped but UI still tracking - stop
+                stopLocationTracking();
+            }
+        }
+
+        // Update marker position on map
+        function updateMarker(lat, lng) {
+            if (!map) return;
+
+            if (driverMarker) {
+                driverMarker.setLatLng([lat, lng]);
+            } else {
+                driverMarker = L.marker([lat, lng], { icon: driverIcon }).addTo(map);
+                map.setView([lat, lng], 13);
+            }
+
+            // Smoothly pan to new location
+            map.panTo([lat, lng], { animate: true, duration: 1 });
+        }
+
+        // Draw path showing movement history
+        function drawPath() {
+            if (!map || pathCoordinates.length < 2) return;
+
+            if (pathPolyline) {
+                map.removeLayer(pathPolyline);
+            }
+
+            pathPolyline = L.polyline(pathCoordinates, {
+                color: '#2196F3',
+                weight: 4,
+                opacity: 0.7,
+                smoothFactor: 1
+            }).addTo(map);
+        }
+
+        // Update UI based on tracking state
+        function updateUI() {
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const updateBtn = document.getElementById('updateBtn');
+            const nameInput = document.getElementById('driverName');
+            const mobileInput = document.getElementById('driverMobile');
+            const headerStatus = document.getElementById('headerStatus');
+            const stateEl = document.getElementById('trackingState');
+
+            if (isTracking) {
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                updateBtn.disabled = false;
+                nameInput.disabled = true;
+                mobileInput.disabled = true;
+                headerStatus.className = 'status-badge active';
+                headerStatus.innerHTML = '<span>🟢</span><span>Active</span>';
+                stateEl.textContent = 'ACTIVE';
+                stateEl.className = 'info-card-value state-active';
+            } else {
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                updateBtn.disabled = true;
+                nameInput.disabled = false;
+                mobileInput.disabled = false;
+                headerStatus.className = 'status-badge inactive';
+                headerStatus.innerHTML = '<span>🔴</span><span>Inactive</span>';
+                stateEl.textContent = 'INACTIVE';
+                stateEl.className = 'info-card-value state-inactive';
+            }
+        }
+
+        // Open Google Maps navigation
+        function openNavigation() {
+            if (!routeOrigin || !routeDestination) {
+                alert('⚠️ Route information not available. Please return to the Approved Route page.');
+                return;
+            }
+
+            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(routeOrigin)}&destination=${encodeURIComponent(routeDestination)}&travelmode=driving`;
+            window.open(mapsUrl, '_blank');
+        }
+    </script>
 </body>
 </html>
