@@ -5,31 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driver Tracking - Roshi Transport</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <style>
-        :root {
-            --primary-gold: #FFD700;
-            --primary-orange: #FFA500;
-            --dark-brown: #2C1810;
-            --medium-brown: #5D4037;
-            --light-brown: #8D6E63;
-            --cream: #FFF8E7;
-            --light-cream: #FFFBF0;
-            --peach: #FFE4B5;
-            --green: #4CAF50;
-            --red: #F44336;
-            --blue: #2196F3;
-        }
-
-        [data-theme="dark"] {
-            --cream: #1a1a1a;
-            --light-cream: #252525;
-            --peach: #3a3a3a;
-            --dark-brown: #e0e0e0;
-            --medium-brown: #b0b0b0;
-            --light-brown: #909090;
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -38,86 +14,114 @@
 
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, var(--cream) 0%, #F5E6D3 100%);
-            overflow: hidden;
-            position: relative;
+            background: linear-gradient(135deg, #FFF8E7 0%, #F5E6D3 100%);
+            min-height: 100vh;
+            padding: 15px;
+            transition: background 0.3s ease;
         }
 
-        .theme-toggle {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            z-index: 2000;
-            background: var(--primary-gold);
-            border: none;
-            border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-            font-size: 20px;
-        }
-
-        .theme-toggle:hover {
-            transform: scale(1.1);
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
         }
 
         .container {
-            display: flex;
-            height: 100vh;
-            flex-direction: column;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
-        /* Sidebar */
-        .sidebar {
-            background: white;
-            padding: 20px;
-            overflow-y: auto;
-            box-shadow: 2px 0 15px rgba(0,0,0,0.1);
-            z-index: 100;
-            max-height: 40vh;
-        }
-
+        /* Header */
         .header {
             text-align: center;
             margin-bottom: 20px;
-            padding: 20px;
-            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-orange) 100%);
-            border-radius: 15px;
-            box-shadow: 0 6px 20px rgba(255, 165, 0, 0.3);
+            padding: 25px 20px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(255, 165, 0, 0.3);
+            position: relative;
+        }
+
+        .dark-mode .header {
+            background: linear-gradient(135deg, #B8860B 0%, #CD853F 100%);
         }
 
         .header h1 {
-            color: var(--dark-brown);
-            font-size: 1.5em;
+            color: #2C1810;
+            font-size: 1.8em;
             font-weight: 700;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
         .header p {
-            color: var(--medium-brown);
-            font-size: 0.9em;
+            color: #5D4037;
+            font-size: 1em;
+            font-weight: 500;
         }
 
-        .status-badge {
-            display: inline-block;
-            padding: 10px 20px;
+        .dark-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            transition: all 0.3s ease;
+        }
+
+        .dark-toggle:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+        }
+
+        /* Status Card */
+        .status-card {
+            background: white;
             border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .dark-mode .status-card {
+            background: #2d2d2d;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .status-banner {
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.1em;
             font-weight: 600;
-            font-size: 0.85em;
-            margin: 10px 0;
-            animation: pulse 2s infinite;
+            margin-bottom: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .status-inactive {
-            background: #f5f5f5;
+            background: linear-gradient(135deg, #F5F5F5 0%, #E0E0E0 100%);
             color: #757575;
         }
 
+        .dark-mode .status-inactive {
+            background: linear-gradient(135deg, #424242 0%, #333333 100%);
+            color: #BDBDBD;
+        }
+
         .status-active {
-            background: linear-gradient(135deg, var(--green) 0%, #45a049 100%);
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
+            animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
@@ -125,759 +129,1200 @@
             50% { opacity: 0.85; }
         }
 
+        .status-syncing {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+        }
+
+        /* Driver Info */
         .driver-info {
-            background: var(--light-cream);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 15px;
+            background: #FFFBF0;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .dark-mode .driver-info {
+            background: #3a3a3a;
         }
 
         .info-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.85em;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #FFE4B5;
+        }
+
+        .dark-mode .info-row {
+            border-bottom-color: #555;
         }
 
         .info-row:last-child {
             margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
         }
 
         .info-label {
-            color: var(--light-brown);
+            color: #8D6E63;
+            font-size: 0.9em;
             font-weight: 500;
         }
 
-        .info-value {
-            color: var(--dark-brown);
-            font-weight: 700;
+        .dark-mode .info-label {
+            color: #B8860B;
         }
 
+        .info-value {
+            color: #2C1810;
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+        .dark-mode .info-value {
+            color: #FFD700;
+        }
+
+        /* Form Fields */
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .form-group label {
             display: block;
-            color: var(--medium-brown);
-            font-size: 0.85em;
+            color: #5D4037;
+            font-size: 0.9em;
             font-weight: 600;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        .dark-mode .form-group label {
+            color: #FFD700;
         }
 
         .form-group input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid var(--peach);
-            border-radius: 10px;
+            padding: 18px;
+            border: 2px solid #FFE4B5;
+            border-radius: 15px;
             font-family: 'Poppins', sans-serif;
-            font-size: 0.95em;
-            color: var(--dark-brown);
+            font-size: 1.1em;
+            color: #2C1810;
+            background: #FFFBF0;
             transition: all 0.3s ease;
-            background: var(--light-cream);
+        }
+
+        .dark-mode .form-group input {
+            background: #3a3a3a;
+            border-color: #555;
+            color: #FFD700;
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: var(--primary-gold);
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+            border-color: #FFD700;
+            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.2);
         }
 
-        .button-group {
+        /* Large Action Buttons */
+        .action-buttons {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 15px 0;
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
-        .btn {
-            padding: 12px 16px;
+        .btn-large {
+            padding: 22px 30px;
             border: none;
-            border-radius: 10px;
+            border-radius: 18px;
             font-family: 'Poppins', sans-serif;
-            font-size: 0.85em;
-            font-weight: 600;
+            font-size: 1.2em;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
         }
 
-        .btn:disabled {
-            opacity: 0.5;
+        .btn-large:active {
+            transform: scale(0.98);
+        }
+
+        .btn-large:disabled {
+            opacity: 0.4;
             cursor: not-allowed;
+            transform: none !important;
         }
 
         .btn-start {
-            background: linear-gradient(135deg, var(--green) 0%, #45a049 100%);
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
         }
 
         .btn-start:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+            transform: translateY(-3px);
         }
 
         .btn-stop {
-            background: linear-gradient(135deg, var(--red) 0%, #D32F2F 100%);
+            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
             color: white;
-            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
         }
 
         .btn-stop:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(244, 67, 54, 0.4);
+            box-shadow: 0 8px 25px rgba(244, 67, 54, 0.4);
+            transform: translateY(-3px);
         }
 
         .btn-update {
-            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-orange) 100%);
-            color: var(--dark-brown);
-            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #2C1810;
         }
 
         .btn-update:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(255, 165, 0, 0.4);
+            box-shadow: 0 8px 25px rgba(255, 165, 0, 0.4);
+            transform: translateY(-3px);
         }
 
         .btn-navigate {
-            background: linear-gradient(135deg, var(--blue) 0%, #1976D2 100%);
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
             color: white;
-            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
-            grid-column: span 2;
         }
 
         .btn-navigate:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4);
+            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.4);
+            transform: translateY(-3px);
         }
 
-        /* Map Container */
-        #map {
-            flex: 1;
-            height: 60vh;
-            position: relative;
-        }
-
-        .map-overlay {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: white;
-            padding: 12px 18px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            z-index: 1000;
-            font-size: 0.85em;
-        }
-
-        .coord-display {
-            color: var(--dark-brown);
-            font-weight: 600;
-        }
-
-        /* Custom Leaflet Marker */
-        .custom-marker {
-            background: var(--primary-gold);
-            border: 3px solid white;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-            animation: markerPulse 1.5s infinite;
-        }
-
-        @keyframes markerPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        /* Loading Overlay */
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 3000;
-        }
-
-        .loading-overlay.show {
+        /* Stats Toggle */
+        .stats-toggle {
             display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px;
+            background: #FFFBF0;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        .spinner {
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid var(--primary-gold);
+        .dark-mode .stats-toggle {
+            background: #3a3a3a;
+        }
+
+        .stats-toggle:hover {
+            background: #FFF4D6;
+        }
+
+        .dark-mode .stats-toggle:hover {
+            background: #444;
+        }
+
+        .stats-toggle label {
+            color: #5D4037;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .dark-mode .stats-toggle label {
+            color: #FFD700;
+        }
+
+        .toggle-switch {
+            width: 60px;
+            height: 32px;
+            background: #ccc;
+            border-radius: 16px;
+            position: relative;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #4CAF50;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            background: white;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
+            top: 3px;
+            left: 3px;
+            transition: left 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active::after {
+            left: 31px;
+        }
+
+        /* Location Stats */
+        .location-stats {
+            background: #FFFBF0;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .dark-mode .location-stats {
+            background: #3a3a3a;
+        }
+
+        .location-stats.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .dark-mode .stat-item {
+            background: #2d2d2d;
+        }
+
+        .stat-item .label {
+            color: #8D6E63;
+            font-size: 0.85em;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .dark-mode .stat-item .label {
+            color: #B8860B;
+        }
+
+        .stat-item .value {
+            color: #2C1810;
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .dark-mode .stat-item .value {
+            color: #FFD700;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #FFE4B5;
+            border-radius: 15px;
+            padding: 18px;
+            margin-bottom: 20px;
+        }
+
+        .dark-mode .info-box {
+            background: rgba(184, 134, 11, 0.2);
+            border-color: #555;
+        }
+
+        .info-box p {
+            color: #5D4037;
+            font-size: 0.9em;
+            line-height: 1.7;
+            margin-bottom: 10px;
+        }
+
+        .dark-mode .info-box p {
+            color: #E0E0E0;
+        }
+
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
 
-        /* Mobile Responsive */
-        @media (min-width: 768px) {
-            .container {
-                flex-direction: row;
-            }
-
-            .sidebar {
-                width: 380px;
-                max-height: 100vh;
-            }
-
-            #map {
-                height: 100vh;
-            }
+        /* Footer */
+        footer {
+            text-align: center;
+            color: #8D6E63;
+            font-size: 0.85em;
+            margin-top: 20px;
+            padding: 15px;
         }
 
-        @media (max-width: 767px) {
-            .sidebar {
-                padding: 15px;
+        .dark-mode footer {
+            color: #B8860B;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 20px 15px;
+                margin-bottom: 15px;
             }
 
             .header h1 {
+                font-size: 1.5em;
+            }
+
+            .dark-toggle {
+                width: 45px;
+                height: 45px;
+                top: 15px;
+                right: 15px;
                 font-size: 1.3em;
             }
 
-            .button-group {
+            .status-card {
+                padding: 18px;
+                margin-bottom: 15px;
+            }
+
+            .btn-large {
+                padding: 20px 25px;
+                font-size: 1.1em;
+            }
+
+            .stat-grid {
                 grid-template-columns: 1fr;
             }
-
-            .btn-navigate {
-                grid-column: span 1;
-            }
-        }
-
-        /* Notification Toast */
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            z-index: 2000;
-            display: none;
-            animation: slideIn 0.3s ease;
-        }
-
-        .toast.show {
-            display: block;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .toast.error {
-            background: #ffebee;
-            color: var(--red);
-        }
-
-        .toast.success {
-            background: #e8f5e9;
-            color: var(--green);
         }
     </style>
 </head>
 <body>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
-
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-    </div>
-
-    <div class="toast" id="toast"></div>
-
     <div class="container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="header">
-                <h1>🚛 Driver Tracking</h1>
-                <p>Roshi Transport Corporation</p>
-            </div>
+        <!-- Header -->
+        <div class="header">
+            <div class="dark-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">🌙</div>
+            <h1>🚛 Driver Tracking</h1>
+            <p>Roshi Transport Corporation</p>
+        </div>
 
-            <div class="status-badge" id="statusBadge">
+        <!-- Main Status Card -->
+        <div class="status-card">
+            <!-- Status Banner -->
+            <div id="statusBanner" class="status-banner status-inactive">
                 🔴 Tracking Inactive
             </div>
 
-            <div class="driver-info">
+            <!-- Driver Info (shown when tracking) -->
+            <div id="driverInfoCard" class="driver-info" style="display: none;">
                 <div class="info-row">
-                    <span class="info-label">Driver:</span>
+                    <span class="info-label">👤 Driver Name</span>
                     <span class="info-value" id="displayName">-</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Phone:</span>
-                    <span class="info-value" id="displayPhone">-</span>
+                    <span class="info-label">📱 Mobile Number</span>
+                    <span class="info-value" id="displayMobile">-</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Last Update:</span>
+                    <span class="info-label">🕐 Last Update</span>
                     <span class="info-value" id="lastUpdate">-</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Updates Sent:</span>
+                    <span class="info-label">📊 Updates Sent</span>
                     <span class="info-value" id="updateCount">0</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Speed:</span>
-                    <span class="info-value" id="speedValue">- km/h</span>
+                    <span class="info-label">📍 Backend Status</span>
+                    <span class="info-value" id="backendStatus">-</span>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Driver Name</label>
-                <input type="text" id="driverName" placeholder="Enter your name">
+            <!-- Form Fields (shown when not tracking) -->
+            <div id="formFields">
+                <div class="form-group">
+                    <label>👤 Driver Name</label>
+                    <input type="text" id="driverName" placeholder="Enter your full name">
+                </div>
+
+                <div class="form-group">
+                    <label>📱 Mobile Number</label>
+                    <input type="tel" id="driverMobile" placeholder="10 digit mobile number" maxlength="10">
+                </div>
             </div>
 
-            <div class="form-group">
-                <label>Mobile Number</label>
-                <input type="tel" id="driverMobile" placeholder="10 digit number" maxlength="10">
+            <!-- Stats Toggle -->
+            <div class="stats-toggle" onclick="toggleStats()">
+                <label>📊 Show Location Stats</label>
+                <div class="toggle-switch" id="statsToggle"></div>
             </div>
 
-            <div class="button-group">
-                <button class="btn btn-start" id="startBtn" onclick="startJourney()">
-                    Start Journey
+            <!-- Location Stats -->
+            <div id="locationStats" class="location-stats">
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="label">🚗 Speed</div>
+                        <div class="value" id="speedValue">0 km/h</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="label">🎯 GPS Accuracy</div>
+                        <div class="value" id="accuracyValue">- m</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="label">📍 Latitude</div>
+                        <div class="value" id="latValue">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="label">📍 Longitude</div>
+                        <div class="value" id="lngValue">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button id="startBtn" class="btn-large btn-start" onclick="startTracking()">
+                    ▶️ Start Journey
                 </button>
-                <button class="btn btn-stop" id="stopBtn" onclick="stopJourney()" disabled>
-                    Stop Journey
+                <button id="stopBtn" class="btn-large btn-stop" onclick="stopTracking()" disabled>
+                    ⏹️ Stop Journey
                 </button>
-                <button class="btn btn-update" id="updateBtn" onclick="forceUpdate()" disabled>
-                    Update Now
+                <button id="updateBtn" class="btn-large btn-update" onclick="forceUpdate()" disabled>
+                    🔄 Update Now
                 </button>
-                <button class="btn btn-navigate" id="navigateBtn" onclick="openNavigation()">
+                <button id="navigateBtn" class="btn-large btn-navigate" onclick="openNavigation()">
                     🧭 Navigate Me
                 </button>
             </div>
-        </div>
 
-        <!-- Map -->
-        <div id="map"></div>
-        <div class="map-overlay">
-            <div class="coord-display" id="coordDisplay">
-                📍 Waiting for location...
+            <!-- Info Box -->
+            <div class="info-box">
+                <p><strong>📱 Keep Active:</strong> Don't close this page during your journey.</p>
+                <p><strong>🔋 Power Tip:</strong> Keep your phone charging for best results.</p>
+                <p><strong>🔄 Auto-Sync:</strong> Location syncs with backend every 5 seconds.</p>
+                <p><strong>🔒 Privacy:</strong> Tracking only active during journey.</p>
             </div>
         </div>
+
+        <footer>
+            <p>© 2024 Roshi Transport Corporation • Safe Driving 🚛</p>
+        </footer>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script>
-        // ==================== CONFIGURATION ====================
+        // ============================================
+        // CONFIGURATION
+        // ============================================
         const API_URL = 'https://script.google.com/macros/s/AKfycbxyirlhBcpliW0APbADmCc4Uhqmr2JGPyELFY8Jw1unHys7P-0Eu7Ooi3rFCFX6dFLv2w/exec';
         const POLL_INTERVAL = 5000; // Poll backend every 5 seconds
-        const UPDATE_INTERVAL = 10000; // Send location every 10 seconds
+        const UPDATE_INTERVAL = 10000; // Send location updates every 10 seconds
 
-        // ==================== STATE MANAGEMENT ====================
-        let map, marker, polyline;
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
         let trackingActive = false;
-        let pollingInterval = null;
-        let updateInterval = null;
+        let pollTimer = null;
+        let updateTimer = null;
         let updateCount = 0;
-        let pathCoordinates = [];
-        let currentPosition = null;
+        let showStats = false;
+        let driverData = {
+            name: '',
+            mobile: '',
+            latitude: null,
+            longitude: null
+        };
         let routeOrigin = '';
         let routeDestination = '';
-        let driverName = '';
-        let driverPhone = '';
 
-        // ==================== INITIALIZATION ====================
+        // ============================================
+        // INITIALIZATION
+        // ============================================
         window.onload = function() {
-            initMap();
-            loadURLParams();
-            loadSavedData();
-            acquireLocationFast();
-        };
+            // Get route params from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            routeOrigin = urlParams.get('origin') || '';
+            routeDestination = urlParams.get('destination') || '';
 
-        // Initialize Leaflet map with OpenStreetMap tiles
-        function initMap() {
-            map = L.map('map').setView([25.7706, 73.0079], 13); // Default: Bhilwara
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 19
-            }).addTo(map);
+            // Load saved preferences
+            const darkMode = localStorage.getItem('darkMode');
+            if (darkMode === 'true') {
+                document.body.classList.add('dark-mode');
+                document.querySelector('.dark-toggle').textContent = '☀️';
+            }
 
-            // Custom marker icon
-            const customIcon = L.divIcon({
-                className: 'custom-marker',
-                iconSize: [24, 24]
-            });
+            // Try to get current location immediately
+            acquireLocation();
 
-            marker = L.marker([25.7706, 73.0079], {icon: customIcon}).addTo(map);
-            polyline = L.polyline([], {color: '#FFD700', weight: 4}).addTo(map);
-        }
-
-        // Load route params from URL
-        function loadURLParams() {
-            const params = new URLSearchParams(window.location.search);
-            routeOrigin = params.get('origin') || '';
-            routeDestination = params.get('destination') || '';
-        }
-
-        // Load saved tracking session
-        function loadSavedData() {
-            const saved = localStorage.getItem('roshiTracking');
+            // Check if tracking was active before refresh
+            const saved = localStorage.getItem('driverTracking');
             if (saved) {
                 const data = JSON.parse(saved);
+                driverData = data;
                 document.getElementById('driverName').value = data.name || '';
-                document.getElementById('driverMobile').value = data.phone || '';
+                document.getElementById('driverMobile').value = data.mobile || '';
                 
                 if (data.isTracking) {
-                    driverName = data.name;
-                    driverPhone = data.phone;
                     updateCount = data.updateCount || 0;
-                    pathCoordinates = data.path || [];
                     resumeTracking();
                 }
             }
-        }
+        };
 
-        // ==================== LOCATION ACQUISITION ====================
-        // Fast location acquisition on page load
-        function acquireLocationFast() {
-            if (navigator.geolocation) {
-                showLoading();
-                navigator.geolocation.getCurrentPosition(
-                    function(pos) {
-                        hideLoading();
-                        currentPosition = pos;
-                        updateMapPosition(pos.coords.latitude, pos.coords.longitude);
-                        updateCoordDisplay(pos.coords.latitude, pos.coords.longitude);
-                        showToast('Location acquired successfully', 'success');
-                    },
-                    function(err) {
-                        hideLoading();
-                        showToast('Unable to get location. Enable GPS.', 'error');
-                    },
-                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-                );
-            }
-        }
-
-        // ==================== TRACKING FUNCTIONS ====================
-        // Start tracking journey
-        function startJourney() {
-            const name = document.getElementById('driverName').value.trim();
-            const phone = document.getElementById('driverMobile').value.trim();
-
-            if (!name) {
-                showToast('Please enter driver name', 'error');
+        // ============================================
+        // LOCATION ACQUISITION
+        // ============================================
+        function acquireLocation() {
+            if (!navigator.geolocation) {
+                console.warn('Geolocation not supported');
                 return;
             }
 
-            if (!phone || phone.length !== 10 || !/^\d+$/.test(phone)) {
-                showToast('Please enter valid 10 digit mobile', 'error');
-                return;
-            }
-
-            driverName = name;
-            driverPhone = phone;
-
-            showLoading();
-            
-            // Get current location and start tracking immediately
             navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    currentPosition = pos;
-                    sendStartRequest(pos.coords.latitude, pos.coords.longitude);
+                function(position) {
+                    driverData.latitude = position.coords.latitude;
+                    driverData.longitude = position.coords.longitude;
+                    
+                    if (showStats) {
+                        updateLocationStats(position);
+                    }
+                    
+                    console.log('Location acquired:', position.coords.latitude, position.coords.longitude);
                 },
-                function(err) {
-                    hideLoading();
-                    showToast('Cannot start without location', 'error');
+                function(error) {
+                    console.error('Location error:', error);
                 },
-                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         }
 
-        // Send start request to backend
-        function sendStartRequest(lat, lng) {
-            const payload = {
-                action: "start",
-                name: driverName,
-                phone: driverPhone,
-                latitude: lat,
-                longitude: lng
-            };
+        // ============================================
+        // TRACKING CONTROL
+        // ============================================
+        function startTracking() {
+            const name = document.getElementById('driverName').value.trim();
+            const mobile = document.getElementById('driverMobile').value.trim();
 
-            fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                hideLoading();
-                if (data.status === 'success') {
-                    activateTracking();
-                    updateMapPosition(lat, lng);
-                    pathCoordinates = [[lat, lng]];
-                    updateCount = 1;
-                    saveState();
-                    showToast('Journey started successfully!', 'success');
-                } else {
-                    showToast('Failed to start: ' + (data.message || 'Unknown error'), 'error');
-                }
-            })
-            .catch(err => {
-                hideLoading();
-                showToast('Network error: ' + err.message, 'error');
-            });
-        }
-
-        // Activate tracking UI and intervals
-        function activateTracking() {
-            trackingActive = true;
-            
-            // Update UI
-            document.getElementById('driverName').disabled = true;
-            document.getElementById('driverMobile').disabled = true;
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('updateBtn').disabled = false;
-            document.getElementById('statusBadge').textContent = '🟢 Tracking Active';
-            document.getElementById('statusBadge').className = 'status-badge status-active';
-            document.getElementById('displayName').textContent = driverName;
-            document.getElementById('displayPhone').textContent = driverPhone;
-
-            // Start polling backend for status
-            pollingInterval = setInterval(pollBackendStatus, POLL_INTERVAL);
-            
-            // Start sending location updates
-            updateInterval = setInterval(sendLocationUpdate, UPDATE_INTERVAL);
-        }
-
-        // Resume tracking from saved state
-        function resumeTracking() {
-            activateTracking();
-            document.getElementById('updateCount').textContent = updateCount;
-            
-            if (pathCoordinates.length > 0) {
-                polyline.setLatLngs(pathCoordinates);
-                const lastPos = pathCoordinates[pathCoordinates.length - 1];
-                updateMapPosition(lastPos[0], lastPos[1]);
+            // Validation
+            if (!name) {
+                alert('⚠️ Please enter your name');
+                document.getElementById('driverName').focus();
+                return;
             }
-        }
 
-        // Poll backend every 5 seconds to check tracking state
-        function pollBackendStatus() {
-            if (!trackingActive || !driverPhone) return;
+            if (!mobile || mobile.length !== 10 || !/^\d+$/.test(mobile)) {
+                alert('⚠️ Please enter a valid 10-digit mobile number');
+                document.getElementById('driverMobile').focus();
+                return;
+            }
 
-            fetch(`${API_URL}?action=status&phone=${driverPhone}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.trackingState === 'STOPPED') {
-                        // Backend says stopped - force stop UI
-                        forceStopUI();
-                        showToast('Tracking stopped by administrator', 'error');
-                    }
+            if (!driverData.latitude || !driverData.longitude) {
+                alert('⚠️ Acquiring your location... Please wait and try again.');
+                acquireLocation();
+                return;
+            }
+
+            // Store driver data
+            driverData.name = name;
+            driverData.mobile = mobile;
+            driverData.isTracking = true;
+            driverData.updateCount = 0;
+
+            // Update UI immediately
+            updateUIForTracking(true);
+            setStatusBanner('syncing', '🔄 Starting Journey...');
+
+            // Send start request to backend
+            sendToBackend('start', driverData.latitude, driverData.longitude)
+                .then(response => {
+                    console.log('Start response:', response);
+                    trackingActive = true;
+                    updateCount++;
+                    driverData.updateCount = updateCount;
+                    
+                    // Save to localStorage
+                    localStorage.setItem('driverTracking', JSON.stringify(driverData));
+                    
+                    // Update UI
+                    setStatusBanner('active', '🟢 Tracking Active - Syncing Every 5s');
+                    updateDisplayInfo();
+                    
+                    // Start polling backend and sending updates
+                    startPolling();
+                    startUpdating();
                 })
-                .catch(err => {
-                    console.error('Polling error:', err);
+                .catch(error => {
+                    console.error('Start error:', error);
+                    alert('❌ Failed to start tracking. Check your connection.');
+                    updateUIForTracking(false);
+                    setStatusBanner('inactive', '🔴 Tracking Inactive');
                 });
         }
 
-        // Send location update to backend
+        function resumeTracking() {
+            trackingActive = true;
+            updateUIForTracking(true);
+            setStatusBanner('active', '🟢 Tracking Active - Syncing Every 5s');
+            updateDisplayInfo();
+            startPolling();
+            startUpdating();
+        }
+
+        function stopTracking() {
+            if (!confirm('🛑 Stop your journey? This will end location tracking.')) {
+                return;
+            }
+
+            setStatusBanner('syncing', '🔄 Stopping Journey...');
+
+            sendToBackend('stop')
+                .then(response => {
+                    console.log('Stop response:', response);
+                    resetTracking();
+                    alert('✅ Journey stopped successfully. Drive safe!');
+                })
+                .catch(error => {
+                    console.error('Stop error:', error);
+                    resetTracking();
+                    alert('⚠️ Journey stopped (offline mode).');
+                });
+        }
+
+        function resetTracking() {
+            // Clear timers
+            if (pollTimer) clearInterval(pollTimer);
+            if (updateTimer) clearInterval(updateTimer);
+            pollTimer = null;
+            updateTimer = null;
+
+            // Reset state
+            trackingActive = false;
+            updateCount = 0;
+            driverData.isTracking = false;
+
+            // Update UI
+            updateUIForTracking(false);
+            setStatusBanner('inactive', '🔴 Tracking Inactive');
+
+            // Clear localStorage
+            localStorage.removeItem('driverTracking');
+        }
+
+        // ============================================
+        // POLLING & UPDATES
+        // ============================================
+        function startPolling() {
+            // Poll backend every 5 seconds to check status
+            pollTimer = setInterval(() => {
+                pollBackendStatus();
+            }, POLL_INTERVAL);
+        }
+
+        function startUpdating() {
+            // Send location updates every 10 seconds
+            updateTimer = setInterval(() => {
+                sendLocationUpdate();
+            }, UPDATE_INTERVAL);
+        }
+
+        function pollBackendStatus() {
+            if (!trackingActive || !driverData.mobile) return;
+
+            fetch(`${API_URL}?action=status&phone=${driverData.mobile}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Poll response:', data);
+                    
+                    const backendState = data.trackingState || 'UNKNOWN';
+                    document.getElementById('backendStatus').textContent = backendState;
+
+                    // If backend says STOPPED but we think we're tracking, stop
+                    if (backendState === 'STOPPED' && trackingActive) {
+                        console.warn('Backend reports STOPPED - forcing stop');
+                        resetTracking();
+                        alert('⚠️ Tracking stopped by administrator.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Poll error:', error);
+                    document.getElementById('backendStatus').textContent = 'OFFLINE';
+                });
+        }
+
         function sendLocationUpdate() {
             if (!trackingActive) return;
 
             navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    currentPosition = pos;
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    driverData.latitude = lat;
+                    driverData.longitude = lng;
 
-                    const payload = {
-                        action: "update",
-                        phone: driverPhone,
-                        latitude: lat,
-                        longitude: lng
-                    };
+                    sendToBackend('update', lat, lng)
+                        .then(response => {
+                            console.log('Update response:', response);
+                            
+                            if (response.trackingState === 'STOPPED') {
+                                console.warn('Backend returned STOPPED');
+                                resetTracking();
+                                alert('⚠️ Tracking stopped by administrator.');
+                                return;
+                            }
 
-                    fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.trackingState === 'STOPPED') {
-                            forceStopUI();
-                            return;
-                        }
+                            updateCount++;
+                            driverData.updateCount = updateCount;
+                            document.getElementById('updateCount').textContent = updateCount;
+                            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
+                            
+                            if (showStats) {
+                                updateLocationStats(position);
+                            }
 
-                        updateCount++;
-                        document.getElementById('updateCount').textContent = updateCount;
-                        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
-                        
-                        // Update speed
-                        const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
-                        document.getElementById('speedValue').textContent = speed + ' km/h';
-
-                        // Update map and path
-                        updateMapPosition(lat, lng, true);
-                        pathCoordinates.push([lat, lng]);
-                        polyline.setLatLngs(pathCoordinates);
-                        
-                        saveState();
-                    })
-                    .catch(err => {
-                        console.error('Update error:', err);
-                    });
+                            localStorage.setItem('driverTracking', JSON.stringify(driverData));
+                        })
+                        .catch(error => {
+                            console.error('Update error:', error);
+                        });
                 },
-                function(err) {
-                    console.error('Geolocation error:', err);
+                function(error) {
+                    console.error('Location error:', error);
                 },
                 { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );
         }
 
-        // Force update now
         function forceUpdate() {
+            setStatusBanner('syncing', '🔄 Updating Location...');
             sendLocationUpdate();
-            showToast('Location updated', 'success');
+            setTimeout(() => {
+                setStatusBanner('active', '🟢 Tracking Active - Syncing Every 5s');
+            }, 2000);
         }
 
-        // Stop journey
-        function stopJourney() {
-            if (!confirm('Stop journey? This will end location tracking.')) return;
-
-            showLoading();
-
+        // ============================================
+        // BACKEND COMMUNICATION
+        // ============================================
+        function sendToBackend(action, latitude, longitude) {
             const payload = {
-                action: "stop",
-                phone: driverPhone
+                action: action,
+                phone: driverData.mobile
             };
 
-            fetch(API_URL, {
+            if (action === 'start' || action === 'update') {
+                payload.latitude = latitude;
+                payload.longitude = longitude;
+            }
+
+            if (action === 'start') {
+                payload.name = driverData.name;
+            }
+
+            return fetch(API_URL, {
+                redirect: 'follow',
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
             })
-            .then(res => res.json())
-            .then(data => {
-                hideLoading();
-                deactivateTracking();
-                showToast('Journey stopped successfully!', 'success');
-            })
-            .catch(err => {
-                hideLoading();
-                deactivateTracking();
-                showToast('Stopped (network error)', 'error');
-            });
+            .then(response => response.json());
         }
 
-        // Force stop from backend
-        function forceStopUI() {
-            deactivateTracking();
+        // ============================================
+        // UI UPDATES
+        // ============================================
+        function updateUIForTracking(isTracking) {
+            // Toggle form fields and driver info
+            document.getElementById('formFields').style.display = isTracking ? 'none' : 'block';
+            document.getElementById('driverInfoCard').style.display = isTracking ? 'block' : 'none';
+
+            // Toggle button states
+            document.getElementById('driverName').disabled = isTracking;
+            document.getElementById('driverMobile').disabled = isTracking;
+            document.getElementById('startBtn').disabled = isTracking;
+            document.getElementById('stopBtn').disabled = !isTracking;
+            document.getElementById('updateBtn').disabled = !isTracking;
         }
 
-        // Deactivate tracking
-        function deactivateTracking() {
-            trackingActive = false;
+        function setStatusBanner(type, text) {
+            const banner = document.getElementById('statusBanner');
+            banner.className = 'status-banner';
             
-            if (pollingInterval) clearInterval(pollingInterval);
-            if (updateInterval) clearInterval(updateInterval);
-
-            document.getElementById('driverName').disabled = false;
-            document.getElementById('driverMobile').disabled = false;
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('updateBtn').disabled = true;
-            document.getElementById('statusBadge').textContent = '🔴 Tracking Inactive';
-            document.getElementById('statusBadge').className = 'status-badge status-inactive';
-
-            localStorage.removeItem('roshiTracking');
-            pathCoordinates = [];
-            updateCount = 0;
-        }
-
-        // ==================== MAP UPDATES ====================
-        // Update map position with smooth animation
-        function updateMapPosition(lat, lng, animate = false) {
-            const newPos = [lat, lng];
-            
-            if (animate && marker) {
-                // Smooth marker transition
-                marker.setLatLng(newPos);
-                map.panTo(newPos, { animate: true, duration: 1.0 });
-            } else {
-                marker.setLatLng(newPos);
-                map.setView(newPos, 15);
+            if (type === 'inactive') {
+                banner.classList.add('status-inactive');
+            } else if (type === 'active') {
+                banner.classList.add('status-active');
+            } else if (type === 'syncing') {
+                banner.classList.add('status-syncing');
             }
-
-            updateCoordDisplay(lat, lng);
+            
+            banner.textContent = text;
         }
 
-        // Update coordinate display
-        function updateCoordDisplay(lat, lng) {
-            document.getElementById('coordDisplay').textContent = 
-                `📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        function updateDisplayInfo() {
+            document.getElementById('displayName').textContent = driverData.name;
+            document.getElementById('displayMobile').textContent = driverData.mobile;
+            document.getElementById('updateCount').textContent = updateCount;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
         }
 
-        // ==================== NAVIGATION ====================
+        function updateLocationStats(position) {
+            const speed = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0;
+            const accuracy = Math.round(position.coords.accuracy);
+            const lat = position.coords.latitude.toFixed(6);
+            const lng = position.coords.longitude.toFixed(6);
+
+            document.getElementById('speedValue').textContent = speed + ' km/h';
+            document.getElementById('accuracyValue').textContent = accuracy + ' m';
+            document.getElementById('latValue').textContent = lat;
+            document.getElementById('lngValue').textContent = lng;
+        }
+
+        // ============================================
+        // FEATURE TOGGLES
+        // ============================================
+        function toggleStats() {
+            showStats = !showStats;
+            const toggle = document.getElementById('statsToggle');
+            const stats = document.getElementById('locationStats');
+            
+            toggle.classList.toggle('active');
+            
+            if (showStats) {
+                stats.classList.add('show');
+                acquireLocation(); // Get fresh location data
+            } else {
+                stats.classList.remove('show');
+            }
+        }
+
+        function toggleDarkMode() {
+            const body = document.body;
+            const toggle = document.querySelector('.dark-toggle');
+            
+            body.classList.toggle('dark-mode');
+            
+            if (body.classList.contains('dark-mode')) {
+                toggle.textContent = '☀️';
+                localStorage.setItem('darkMode', 'true');
+            } else {
+                toggle.textContent = '🌙';
+                localStorage.setItem('darkMode', 'false');
+            }
+        }
+
+        // ============================================
+        // NAVIGATION
+        // ============================================
         function openNavigation() {
             if (!routeOrigin || !routeDestination) {
-                showToast('Route info not available', 'error');
+                // If no route params, use current location if available
+                if (driverData.latitude && driverData.longitude) {
+                    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${driverData.latitude},${driverData.longitude}`;
+                    window.open(mapsUrl, '_blank');
+                } else {
+                    alert('📍 Route information not available. Acquiring location...');
+                    acquireLocation();
+                }
                 return;
             }
 
-            const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(routeOrigin)}&destination=${encodeURIComponent(routeDestination)}&travelmode=driving`;
-            window.open(url, '_blank');
+            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(routeOrigin)}&destination=${encodeURIComponent(routeDestination)}&travelmode=driving`;
+            window.open(mapsUrl, '_blank');
         }
 
-        // ==================== UTILITIES ====================
-        function saveState() {
-            const state = {
-                name: driverName,
-                phone: driverPhone,
-                isTracking: trackingActive,
-                updateCount: updateCount,
-                path: pathCoordinates
-            };
-            localStorage.setItem('roshiTracking', JSON.stringify(state));
+        // ============================================
+        // LIFECYCLE MANAGEMENT
+        // ============================================
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('Page hidden - tracking continues in background');
+            } else {
+                console.log('Page visible - resuming UI updates');
+                if (trackingActive) {
+                    // Force an immediate poll when page becomes visible again
+                    pollBackendStatus();
+                }
+            }
+        });
+
+        // Warn user before closing if tracking is active
+        window.addEventListener('beforeunload', function(e) {
+            if (trackingActive) {
+                e.preventDefault();
+                e.returnValue = 'Journey tracking is active. Are you sure you want to leave?';
+                return e.returnValue;
+            }
+        });
+
+        // Handle network status changes
+        window.addEventListener('online', function() {
+            console.log('Connection restored');
+            if (trackingActive) {
+                // Send immediate update when connection is restored
+                sendLocationUpdate();
+            }
+        });
+
+        window.addEventListener('offline', function() {
+            console.log('Connection lost - will retry when online');
+        });
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        
+        // Format time ago (for future enhancements)
+        function getTimeAgo(timestamp) {
+            const now = Date.now();
+            const diff = now - timestamp;
+            const seconds = Math.floor(diff / 1000);
+            
+            if (seconds < 60) return `${seconds}s ago`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            return `${hours}h ago`;
         }
 
-        function showLoading() {
-            document.getElementById('loadingOverlay').classList.add('show');
+        // Vibrate on important actions (if supported)
+        function vibrateDevice(pattern = [200]) {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(pattern);
+            }
         }
 
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.remove('show');
+        // Add vibration feedback to button clicks
+        document.querySelectorAll('.btn-large').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (!this.disabled) {
+                    vibrateDevice([50]); // Short vibration on tap
+                }
+            });
+        });
+
+        // ============================================
+        // ENHANCED ERROR HANDLING
+        // ============================================
+        
+        // Handle geolocation errors with user-friendly messages
+        function handleGeolocationError(error) {
+            let message = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = '❌ Location permission denied. Please enable location access in your browser settings.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = '⚠️ Location unavailable. Please check your GPS settings.';
+                    break;
+                case error.TIMEOUT:
+                    message = '⏱️ Location request timeout. Please try again.';
+                    break;
+                default:
+                    message = '❌ Unknown location error. Please try again.';
+            }
+            console.error('Geolocation error:', message);
+            return message;
         }
 
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast ${type} show`;
-            setTimeout(() => toast.classList.remove('show'), 3000);
+        // Network error handler
+        function handleNetworkError(error, action) {
+            console.error(`Network error during ${action}:`, error);
+            
+            // Don't show error for background updates
+            if (action === 'update' || action === 'poll') {
+                return;
+            }
+            
+            // Show user-friendly error for critical actions
+            if (action === 'start') {
+                alert('❌ Unable to start tracking. Please check your internet connection and try again.');
+            } else if (action === 'stop') {
+                alert('⚠️ Unable to contact server. Journey will be stopped locally.');
+            }
         }
 
-        function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const newTheme = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            document.querySelector('.theme-toggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        // ============================================
+        // PERFORMANCE MONITORING (Optional)
+        // ============================================
+        
+        let performanceStats = {
+            startTime: null,
+            locationAcquisitions: 0,
+            networkRequests: 0,
+            errors: 0
+        };
+
+        function logPerformance(event, data) {
+            if (!performanceStats.startTime) {
+                performanceStats.startTime = Date.now();
+            }
+            
+            switch(event) {
+                case 'location_acquired':
+                    performanceStats.locationAcquisitions++;
+                    break;
+                case 'network_request':
+                    performanceStats.networkRequests++;
+                    break;
+                case 'error':
+                    performanceStats.errors++;
+                    break;
+            }
+            
+            console.log(`[Performance] ${event}:`, data, performanceStats);
         }
+
+        // ============================================
+        // BATTERY OPTIMIZATION
+        // ============================================
+        
+        // Check battery status and warn user
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(function(battery) {
+                function updateBatteryWarning() {
+                    if (battery.level < 0.2 && !battery.charging && trackingActive) {
+                        console.warn('Low battery:', Math.round(battery.level * 100) + '%');
+                        // Could show a warning to user to connect charger
+                    }
+                }
+                
+                battery.addEventListener('levelchange', updateBatteryWarning);
+                battery.addEventListener('chargingchange', updateBatteryWarning);
+                
+                updateBatteryWarning();
+            });
+        }
+
+        // ============================================
+        // ACCESSIBILITY ENHANCEMENTS
+        // ============================================
+        
+        // Announce status changes to screen readers
+        function announceToScreenReader(message) {
+            const announcement = document.createElement('div');
+            announcement.setAttribute('role', 'status');
+            announcement.setAttribute('aria-live', 'polite');
+            announcement.className = 'sr-only';
+            announcement.textContent = message;
+            document.body.appendChild(announcement);
+            
+            setTimeout(() => {
+                document.body.removeChild(announcement);
+            }, 1000);
+        }
+
+        // Add keyboard shortcuts for accessibility
+        document.addEventListener('keydown', function(e) {
+            // Alt+S to start tracking
+            if (e.altKey && e.key === 's' && !document.getElementById('startBtn').disabled) {
+                startTracking();
+                announceToScreenReader('Starting journey tracking');
+            }
+            
+            // Alt+X to stop tracking
+            if (e.altKey && e.key === 'x' && !document.getElementById('stopBtn').disabled) {
+                stopTracking();
+                announceToScreenReader('Stopping journey tracking');
+            }
+            
+            // Alt+U to force update
+            if (e.altKey && e.key === 'u' && !document.getElementById('updateBtn').disabled) {
+                forceUpdate();
+                announceToScreenReader('Forcing location update');
+            }
+            
+            // Alt+N to navigate
+            if (e.altKey && e.key === 'n') {
+                openNavigation();
+                announceToScreenReader('Opening navigation');
+            }
+            
+            // Alt+D to toggle dark mode
+            if (e.altKey && e.key === 'd') {
+                toggleDarkMode();
+                const isDark = document.body.classList.contains('dark-mode');
+                announceToScreenReader(isDark ? 'Dark mode enabled' : 'Light mode enabled');
+            }
+        });
+
+        // ============================================
+        // DEBUG CONSOLE (for development)
+        // ============================================
+        
+        // Log all tracking events for debugging
+        const DEBUG = false; // Set to true for verbose logging
+        
+        function debugLog(category, message, data) {
+            if (DEBUG) {
+                console.log(`[${category}] ${message}`, data || '');
+            }
+        }
+
+        // Expose debug info to console
+        window.driverTrackingDebug = {
+            getState: function() {
+                return {
+                    trackingActive,
+                    driverData,
+                    updateCount,
+                    showStats,
+                    pollTimer: !!pollTimer,
+                    updateTimer: !!updateTimer,
+                    performanceStats
+                };
+            },
+            forceStop: function() {
+                resetTracking();
+                console.log('Force stopped tracking');
+            },
+            forceStart: function() {
+                if (driverData.name && driverData.mobile) {
+                    startTracking();
+                    console.log('Force started tracking');
+                } else {
+                    console.log('Cannot start - missing driver info');
+                }
+            },
+            clearStorage: function() {
+                localStorage.removeItem('driverTracking');
+                localStorage.removeItem('darkMode');
+                console.log('Storage cleared');
+            }
+        };
+
+        console.log('🚛 Roshi Transport Driver Tracking Loaded');
+        console.log('📱 Debug tools available at: window.driverTrackingDebug');
+        console.log('⌨️ Keyboard shortcuts: Alt+S (Start), Alt+X (Stop), Alt+U (Update), Alt+N (Navigate), Alt+D (Dark Mode)');
     </script>
 </body>
 </html>
