@@ -7,6 +7,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <style>
+        :root {
+            --primary-gold: #FFD700;
+            --primary-orange: #FFA500;
+            --dark-brown: #2C1810;
+            --medium-brown: #5D4037;
+            --light-brown: #8D6E63;
+            --cream: #FFF8E7;
+            --light-cream: #FFFBF0;
+            --peach: #FFE4B5;
+            --green: #4CAF50;
+            --red: #F44336;
+            --blue: #2196F3;
+        }
+
+        [data-theme="dark"] {
+            --cream: #1a1a1a;
+            --light-cream: #252525;
+            --peach: #3a3a3a;
+            --dark-brown: #e0e0e0;
+            --medium-brown: #b0b0b0;
+            --light-brown: #909090;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -15,127 +38,119 @@
 
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #FFF8E7 0%, #F5E6D3 100%);
-            min-height: 100vh;
+            background: linear-gradient(135deg, var(--cream) 0%, #F5E6D3 100%);
+            overflow: hidden;
+            position: relative;
         }
 
-        .header {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            padding: 16px 20px;
-            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.3);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+        .theme-toggle {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 2000;
+            background: var(--primary-gold);
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            font-size: 20px;
         }
 
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .header-icon {
-            font-size: 2em;
-            line-height: 1;
-        }
-
-        .header-text h1 {
-            color: #2C1810;
-            font-size: 1.5em;
-            font-weight: 700;
-            line-height: 1.2;
-        }
-
-        .header-subtitle {
-            color: #5D4037;
-            font-size: 0.85em;
-            font-weight: 500;
-        }
-
-        .status-badge {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .status-badge.inactive {
-            background: rgba(255, 255, 255, 0.3);
-            color: #5D4037;
-            border: 2px solid #5D4037;
-        }
-
-        .status-badge.active {
-            background: #4CAF50;
-            color: white;
-            border: 2px solid #45a049;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.9; transform: scale(1.02); }
+        .theme-toggle:hover {
+            transform: scale(1.1);
         }
 
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 20px;
-            min-height: calc(100vh - 100px);
-        }
-
-        .sidebar {
             display: flex;
+            height: 100vh;
             flex-direction: column;
-            gap: 15px;
-            overflow-y: auto;
-            max-height: calc(100vh - 140px);
         }
 
-        .card {
+        /* Sidebar */
+        .sidebar {
             background: white;
-            border-radius: 20px;
             padding: 20px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 215, 0, 0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow-y: auto;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+            z-index: 100;
+            max-height: 40vh;
         }
 
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-orange) 100%);
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(255, 165, 0, 0.3);
         }
 
-        .card-title {
-            color: #2C1810;
-            font-size: 1.1em;
+        .header h1 {
+            color: var(--dark-brown);
+            font-size: 1.5em;
             font-weight: 700;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #FFE4B5;
+            margin-bottom: 5px;
         }
 
-        .card-title-icon {
-            font-size: 1.3em;
+        .header p {
+            color: var(--medium-brown);
+            font-size: 0.9em;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85em;
+            margin: 10px 0;
+            animation: pulse 2s infinite;
+        }
+
+        .status-inactive {
+            background: #f5f5f5;
+            color: #757575;
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, var(--green) 0%, #45a049 100%);
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        .driver-info {
+            background: var(--light-cream);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            color: var(--light-brown);
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: var(--dark-brown);
+            font-weight: 700;
         }
 
         .form-group {
@@ -144,281 +159,167 @@
 
         .form-group label {
             display: block;
-            color: #5D4037;
+            color: var(--medium-brown);
             font-size: 0.85em;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .form-group input {
             width: 100%;
-            padding: 14px 16px;
-            border: 2px solid #FFE4B5;
-            border-radius: 12px;
+            padding: 12px;
+            border: 2px solid var(--peach);
+            border-radius: 10px;
             font-family: 'Poppins', sans-serif;
-            font-size: 1em;
-            color: #2C1810;
-            background: #FFFBF0;
+            font-size: 0.95em;
+            color: var(--dark-brown);
             transition: all 0.3s ease;
+            background: var(--light-cream);
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #FFD700;
-            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.15);
-            background: white;
-        }
-
-        .form-group input:disabled {
-            background: #F5F5F5;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .info-card {
-            background: linear-gradient(135deg, #FFFBF0 0%, #FFF8E7 100%);
-            padding: 12px;
-            border-radius: 12px;
-            border: 2px solid #FFE4B5;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .info-card:hover {
-            transform: scale(1.05);
-            border-color: #FFD700;
-        }
-
-        .info-card-label {
-            color: #8D6E63;
-            font-size: 0.75em;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-
-        .info-card-value {
-            color: #2C1810;
-            font-size: 1.1em;
-            font-weight: 700;
-            word-break: break-all;
-        }
-
-        .info-card-value.state-active {
-            color: #4CAF50;
-        }
-
-        .info-card-value.state-inactive {
-            color: #757575;
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
         }
 
         .button-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
+            margin: 15px 0;
         }
 
         .btn {
-            padding: 14px 20px;
+            padding: 12px 16px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-family: 'Poppins', sans-serif;
-            font-size: 0.9em;
+            font-size: 0.85em;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .btn:active::before {
-            width: 300px;
-            height: 300px;
         }
 
         .btn:disabled {
-            opacity: 0.4;
+            opacity: 0.5;
             cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .btn:disabled::before {
-            display: none;
         }
 
         .btn-start {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            background: linear-gradient(135deg, var(--green) 0%, #45a049 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
         }
 
         .btn-start:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
         }
 
         .btn-stop {
-            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+            background: linear-gradient(135deg, var(--red) 0%, #D32F2F 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
         }
 
         .btn-stop:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(244, 67, 54, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(244, 67, 54, 0.4);
+        }
+
+        .btn-update {
+            background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-orange) 100%);
+            color: var(--dark-brown);
+            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+        }
+
+        .btn-update:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 165, 0, 0.4);
         }
 
         .btn-navigate {
-            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            background: linear-gradient(135deg, var(--blue) 0%, #1976D2 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
             grid-column: span 2;
         }
 
         .btn-navigate:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4);
         }
 
-        .btn-update {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #2C1810;
-            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
-            grid-column: span 2;
-        }
-
-        .btn-update:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(255, 165, 0, 0.5);
-        }
-
-        .map-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            position: relative;
-            border: 1px solid rgba(255, 215, 0, 0.2);
-        }
-
+        /* Map Container */
         #map {
-            width: 100%;
-            height: 100%;
-            min-height: 500px;
+            flex: 1;
+            height: 60vh;
+            position: relative;
         }
 
         .map-overlay {
             position: absolute;
             top: 15px;
-            right: 15px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 14px 18px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            left: 15px;
+            background: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             z-index: 1000;
             font-size: 0.85em;
-            border: 2px solid rgba(255, 215, 0, 0.3);
         }
 
-        .map-overlay-title {
-            font-weight: 700;
-            color: #2C1810;
-            margin-bottom: 8px;
-            font-size: 0.95em;
+        .coord-display {
+            color: var(--dark-brown);
+            font-weight: 600;
         }
 
-        .map-overlay-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 6px;
-        }
-
-        .map-overlay-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .map-legend-dot {
-            width: 12px;
-            height: 12px;
+        /* Custom Leaflet Marker */
+        .custom-marker {
+            background: var(--primary-gold);
+            border: 3px solid white;
             border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            width: 24px;
+            height: 24px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            animation: markerPulse 1.5s infinite;
         }
 
-        .alert-box {
-            background: linear-gradient(135deg, #FFF3CD 0%, #FFE4B5 100%);
-            border: 2px solid #FFD700;
-            border-radius: 16px;
-            padding: 16px;
-            font-size: 0.85em;
-            color: #856404;
-            line-height: 1.6;
+        @keyframes markerPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
-        .alert-box-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .alert-box-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .alert-icon {
-            font-size: 1.2em;
-            flex-shrink: 0;
-        }
-
-        .loading {
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
             display: none;
-            text-align: center;
-            padding: 40px 20px;
-            color: #8D6E63;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
         }
 
-        .loading.show {
-            display: block;
+        .loading-overlay.show {
+            display: flex;
         }
 
         .spinner {
-            border: 4px solid #FFE4B5;
-            border-top: 4px solid #FFD700;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid var(--primary-gold);
             border-radius: 50%;
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
         }
 
         @keyframes spin {
@@ -426,729 +327,556 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Mobile Optimizations */
-        @media (max-width: 1024px) {
+        /* Mobile Responsive */
+        @media (min-width: 768px) {
             .container {
-                grid-template-columns: 1fr;
-                gap: 15px;
-                padding: 15px;
-                min-height: auto;
+                flex-direction: row;
             }
 
             .sidebar {
-                max-height: none;
+                width: 380px;
+                max-height: 100vh;
             }
 
             #map {
-                min-height: 450px;
+                height: 100vh;
             }
         }
 
-        @media (max-width: 768px) {
-            .header {
-                padding: 12px 15px;
+        @media (max-width: 767px) {
+            .sidebar {
+                padding: 15px;
             }
 
-            .header-content {
-                gap: 10px;
-            }
-
-            .header-icon {
-                font-size: 1.5em;
-            }
-
-            .header-text h1 {
-                font-size: 1.2em;
-            }
-
-            .header-subtitle {
-                font-size: 0.75em;
-            }
-
-            .status-badge {
-                padding: 6px 12px;
-                font-size: 0.75em;
-            }
-
-            .container {
-                padding: 12px;
-                gap: 12px;
-            }
-
-            .card {
-                padding: 16px;
-                border-radius: 16px;
-            }
-
-            .card-title {
-                font-size: 1em;
-                margin-bottom: 12px;
-            }
-
-            .form-group {
-                margin-bottom: 12px;
-            }
-
-            .form-group input {
-                padding: 12px 14px;
-                font-size: 16px; /* Prevents zoom on iOS */
-            }
-
-            .info-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-            }
-
-            .info-card {
-                padding: 10px;
-            }
-
-            .info-card-label {
-                font-size: 0.7em;
-            }
-
-            .info-card-value {
-                font-size: 1em;
-            }
-
-            .button-group {
-                gap: 8px;
-            }
-
-            .btn {
-                padding: 12px 16px;
-                font-size: 0.85em;
-            }
-
-            #map {
-                min-height: 400px;
-            }
-
-            .map-overlay {
-                top: 10px;
-                right: 10px;
-                padding: 10px 14px;
-                font-size: 0.75em;
-            }
-
-            .map-overlay-title {
-                font-size: 0.9em;
-                margin-bottom: 6px;
-            }
-
-            .alert-box {
-                padding: 12px;
-                font-size: 0.8em;
-            }
-
-            .alert-box-item {
-                margin-bottom: 8px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .header-content {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-            }
-
-            .header-left {
-                gap: 8px;
-            }
-
-            .header-icon {
+            .header h1 {
                 font-size: 1.3em;
             }
 
-            .header-text h1 {
-                font-size: 1.1em;
-            }
-
-            .status-badge {
-                align-self: flex-start;
-            }
-
-            .info-grid {
-                grid-template-columns: 1fr;
-                gap: 8px;
-            }
-
-            .info-card {
-                padding: 12px;
-            }
-
             .button-group {
                 grid-template-columns: 1fr;
-                gap: 10px;
             }
 
-            .btn-navigate,
-            .btn-update {
+            .btn-navigate {
                 grid-column: span 1;
             }
+        }
 
-            #map {
-                min-height: 350px;
+        /* Notification Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 2000;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
             }
-
-            .map-overlay {
-                top: 8px;
-                right: 8px;
-                left: 8px;
-                padding: 8px 12px;
+            to {
+                transform: translateX(0);
+                opacity: 1;
             }
         }
 
-        @media (max-width: 360px) {
-            .header {
-                padding: 10px 12px;
-            }
-
-            .container {
-                padding: 10px;
-            }
-
-            .card {
-                padding: 14px;
-            }
-
-            .btn {
-                padding: 10px 14px;
-                font-size: 0.8em;
-            }
-
-            #map {
-                min-height: 300px;
-            }
+        .toast.error {
+            background: #ffebee;
+            color: var(--red);
         }
 
-        /* Touch feedback for mobile */
-        @media (hover: none) {
-            .btn:active:not(:disabled) {
-                transform: scale(0.98);
-            }
-
-            .info-card:active {
-                transform: scale(1.02);
-            }
+        .toast.success {
+            background: #e8f5e9;
+            color: var(--green);
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="header-left">
-                <div class="header-icon">🚛</div>
-                <div class="header-text">
-                    <h1>Driver Tracking</h1>
-                    <div class="header-subtitle">Roshi Transport Corporation</div>
-                </div>
-            </div>
-            <div class="status-badge inactive" id="headerStatus">
-                <span>🔴</span>
-                <span>Inactive</span>
-            </div>
-        </div>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
     </div>
 
+    <div class="toast" id="toast"></div>
+
     <div class="container">
+        <!-- Sidebar -->
         <div class="sidebar">
-            <!-- Driver Information Card -->
-            <div class="card">
-                <div class="card-title">
-                    <span class="card-title-icon">👤</span>
-                    <span>Driver Information</span>
+            <div class="header">
+                <h1>🚛 Driver Tracking</h1>
+                <p>Roshi Transport Corporation</p>
+            </div>
+
+            <div class="status-badge" id="statusBadge">
+                🔴 Tracking Inactive
+            </div>
+
+            <div class="driver-info">
+                <div class="info-row">
+                    <span class="info-label">Driver:</span>
+                    <span class="info-value" id="displayName">-</span>
                 </div>
-                <div class="form-group">
-                    <label>Driver Name</label>
-                    <input type="text" id="driverName" placeholder="Enter your name">
+                <div class="info-row">
+                    <span class="info-label">Phone:</span>
+                    <span class="info-value" id="displayPhone">-</span>
                 </div>
-                <div class="form-group">
-                    <label>Mobile Number</label>
-                    <input type="tel" id="driverMobile" placeholder="10 digit number" maxlength="10">
+                <div class="info-row">
+                    <span class="info-label">Last Update:</span>
+                    <span class="info-value" id="lastUpdate">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Updates Sent:</span>
+                    <span class="info-value" id="updateCount">0</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Speed:</span>
+                    <span class="info-value" id="speedValue">- km/h</span>
                 </div>
             </div>
 
-            <!-- Current Status Card -->
-            <div class="card">
-                <div class="card-title">
-                    <span class="card-title-icon">📊</span>
-                    <span>Live Status</span>
-                </div>
-                <div class="info-grid">
-                    <div class="info-card">
-                        <div class="info-card-label">Tracking</div>
-                        <div class="info-card-value state-inactive" id="trackingState">INACTIVE</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-card-label">Updates</div>
-                        <div class="info-card-value" id="updateCount">0</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-card-label">Latitude</div>
-                        <div class="info-card-value" id="latDisplay">-</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-card-label">Longitude</div>
-                        <div class="info-card-value" id="lngDisplay">-</div>
-                    </div>
-                    <div class="info-card" style="grid-column: span 2;">
-                        <div class="info-card-label">Last Update</div>
-                        <div class="info-card-value" id="lastUpdate">-</div>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label>Driver Name</label>
+                <input type="text" id="driverName" placeholder="Enter your name">
             </div>
 
-            <!-- Controls Card -->
-            <div class="card">
-                <div class="card-title">
-                    <span class="card-title-icon">🎮</span>
-                    <span>Controls</span>
-                </div>
-                <div class="button-group">
-                    <button class="btn btn-start" id="startBtn" onclick="startJourney()">
-                        <span>▶️</span>
-                        <span>Start</span>
-                    </button>
-                    <button class="btn btn-stop" id="stopBtn" onclick="stopJourney()" disabled>
-                        <span>⏹️</span>
-                        <span>Stop</span>
-                    </button>
-                    <button class="btn btn-navigate" id="navigateBtn" onclick="openNavigation()">
-                        <span>🗺️</span>
-                        <span>Navigate Me</span>
-                    </button>
-                    <button class="btn btn-update" id="updateBtn" onclick="forceUpdate()" disabled>
-                        <span>🔄</span>
-                        <span>Update Now</span>
-                    </button>
-                </div>
+            <div class="form-group">
+                <label>Mobile Number</label>
+                <input type="tel" id="driverMobile" placeholder="10 digit number" maxlength="10">
             </div>
 
-            <!-- Important Notes -->
-            <div class="alert-box">
-                <div class="alert-box-item">
-                    <span class="alert-icon">📱</span>
-                    <span>Keep page open while driving</span>
-                </div>
-                <div class="alert-box-item">
-                    <span class="alert-icon">🔋</span>
-                    <span>Connect to charger recommended</span>
-                </div>
-                <div class="alert-box-item">
-                    <span class="alert-icon">📍</span>
-                    <span>GPS must be enabled</span>
-                </div>
-                <div class="alert-box-item">
-                    <span class="alert-icon">⏱️</span>
-                    <span>Updates every 10 seconds</span>
-                </div>
+            <div class="button-group">
+                <button class="btn btn-start" id="startBtn" onclick="startJourney()">
+                    Start Journey
+                </button>
+                <button class="btn btn-stop" id="stopBtn" onclick="stopJourney()" disabled>
+                    Stop Journey
+                </button>
+                <button class="btn btn-update" id="updateBtn" onclick="forceUpdate()" disabled>
+                    Update Now
+                </button>
+                <button class="btn btn-navigate" id="navigateBtn" onclick="openNavigation()">
+                    🧭 Navigate Me
+                </button>
             </div>
         </div>
 
-        <!-- Map Container -->
-        <div class="map-container">
-            <div id="map"></div>
-            <div class="map-overlay">
-                <div class="map-overlay-title">📍 Map Legend</div>
-                <div class="map-overlay-item">
-                    <div class="map-legend-dot" style="background: #4CAF50;"></div>
-                    <span>Current Position</span>
-                </div>
-                <div class="map-overlay-item">
-                    <div class="map-legend-dot" style="background: #2196F3;"></div>
-                    <span>Movement Path</span>
-                </div>
-            </div>
-            <div class="loading" id="mapLoading">
-                <div class="spinner"></div>
-                <div>Loading map...</div>
+        <!-- Map -->
+        <div id="map"></div>
+        <div class="map-overlay">
+            <div class="coord-display" id="coordDisplay">
+                📍 Waiting for location...
             </div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script>
-        // Backend API Configuration
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzFwItcBCBlpZ6P89FTEUjrDt4A117eyOwieT2fvgAXMU6DwnApGSjRZWmFpr9ooe2xFA/exec';
-        
-        // State Management
-        let map = null;
-        let driverMarker = null;
-        let pathPolyline = null;
-        let pathCoordinates = [];
-        let trackingInterval = null;
+        // ==================== CONFIGURATION ====================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxyirlhBcpliW0APbADmCc4Uhqmr2JGPyELFY8Jw1unHys7P-0Eu7Ooi3rFCFX6dFLv2w/exec';
+        const POLL_INTERVAL = 5000; // Poll backend every 5 seconds
+        const UPDATE_INTERVAL = 10000; // Send location every 10 seconds
+
+        // ==================== STATE MANAGEMENT ====================
+        let map, marker, polyline;
+        let trackingActive = false;
+        let pollingInterval = null;
+        let updateInterval = null;
         let updateCount = 0;
-        let isTracking = false;
+        let pathCoordinates = [];
+        let currentPosition = null;
         let routeOrigin = '';
         let routeDestination = '';
-        
-        // Custom marker icons
-        const driverIcon = L.divIcon({
-            className: 'custom-driver-marker',
-            html: '<div style="background: #4CAF50; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-        });
+        let driverName = '';
+        let driverPhone = '';
 
-        // Initialize on page load
+        // ==================== INITIALIZATION ====================
         window.onload = function() {
-            initializeMap();
-            loadRouteParameters();
+            initMap();
+            loadURLParams();
             loadSavedData();
-            startBackendPolling();
+            acquireLocationFast();
         };
 
-        // Initialize Leaflet map with OpenStreetMap tiles (free)
-        function initializeMap() {
-            document.getElementById('mapLoading').classList.add('show');
-            
-            map = L.map('map').setView([20.5937, 78.9629], 5); // Center of India
+        // Initialize Leaflet map with OpenStreetMap tiles
+        function initMap() {
+            map = L.map('map').setView([25.7706, 73.0079], 13); // Default: Bhilwara
             
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 19
             }).addTo(map);
 
-            map.on('load', function() {
-                document.getElementById('mapLoading').classList.remove('show');
+            // Custom marker icon
+            const customIcon = L.divIcon({
+                className: 'custom-marker',
+                iconSize: [24, 24]
             });
 
-            setTimeout(() => {
-                document.getElementById('mapLoading').classList.remove('show');
-            }, 2000);
+            marker = L.marker([25.7706, 73.0079], {icon: customIcon}).addTo(map);
+            polyline = L.polyline([], {color: '#FFD700', weight: 4}).addTo(map);
         }
 
-        // Load route parameters from URL
-        function loadRouteParameters() {
-            const urlParams = new URLSearchParams(window.location.search);
-            routeOrigin = urlParams.get('origin') || '';
-            routeDestination = urlParams.get('destination') || '';
+        // Load route params from URL
+        function loadURLParams() {
+            const params = new URLSearchParams(window.location.search);
+            routeOrigin = params.get('origin') || '';
+            routeDestination = params.get('destination') || '';
         }
 
-        // Load saved driver data from localStorage
+        // Load saved tracking session
         function loadSavedData() {
-            const saved = localStorage.getItem('roshiDriverData');
+            const saved = localStorage.getItem('roshiTracking');
             if (saved) {
                 const data = JSON.parse(saved);
                 document.getElementById('driverName').value = data.name || '';
-                document.getElementById('driverMobile').value = data.mobile || '';
-                updateCount = data.updateCount || 0;
-                document.getElementById('updateCount').textContent = updateCount;
+                document.getElementById('driverMobile').value = data.phone || '';
                 
-                if (data.pathCoordinates) {
-                    pathCoordinates = data.pathCoordinates;
-                    drawPath();
+                if (data.isTracking) {
+                    driverName = data.name;
+                    driverPhone = data.phone;
+                    updateCount = data.updateCount || 0;
+                    pathCoordinates = data.path || [];
+                    resumeTracking();
                 }
             }
         }
 
-        // Save driver data to localStorage
-        function saveData() {
-            const data = {
-                name: document.getElementById('driverName').value,
-                mobile: document.getElementById('driverMobile').value,
-                updateCount: updateCount,
-                pathCoordinates: pathCoordinates,
-                isTracking: isTracking
-            };
-            localStorage.setItem('roshiDriverData', JSON.stringify(data));
+        // ==================== LOCATION ACQUISITION ====================
+        // Fast location acquisition on page load
+        function acquireLocationFast() {
+            if (navigator.geolocation) {
+                showLoading();
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        hideLoading();
+                        currentPosition = pos;
+                        updateMapPosition(pos.coords.latitude, pos.coords.longitude);
+                        updateCoordDisplay(pos.coords.latitude, pos.coords.longitude);
+                        showToast('Location acquired successfully', 'success');
+                    },
+                    function(err) {
+                        hideLoading();
+                        showToast('Unable to get location. Enable GPS.', 'error');
+                    },
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                );
+            }
         }
 
+        // ==================== TRACKING FUNCTIONS ====================
         // Start tracking journey
         function startJourney() {
             const name = document.getElementById('driverName').value.trim();
-            const mobile = document.getElementById('driverMobile').value.trim();
+            const phone = document.getElementById('driverMobile').value.trim();
 
             if (!name) {
-                alert('❌ Please enter your name');
+                showToast('Please enter driver name', 'error');
                 return;
             }
 
-            if (!mobile || mobile.length !== 10 || !/^\d+$/.test(mobile)) {
-                alert('❌ Please enter a valid 10-digit mobile number');
+            if (!phone || phone.length !== 10 || !/^\d+$/.test(phone)) {
+                showToast('Please enter valid 10 digit mobile', 'error');
                 return;
             }
 
-            if (!navigator.geolocation) {
-                alert('❌ Geolocation is not supported by your browser');
-                return;
-            }
+            driverName = name;
+            driverPhone = phone;
 
-            // Get current location and send start request
+            showLoading();
+            
+            // Get current location and start tracking immediately
             navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const payload = {
-                        action: "start",
-                        name: name,
-                        phone: mobile,
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    };
-
-                    fetch(API_URL, {
-                        redirect: 'follow',
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Start response:', data);
-                        isTracking = true;
-                        updateCount++;
-                        pathCoordinates = [[position.coords.latitude, position.coords.longitude]];
-                        updateUI();
-                        updateMarker(position.coords.latitude, position.coords.longitude);
-                        startLocationTracking();
-                        saveData();
-                    })
-                    .catch(error => {
-                        console.error('Error starting journey:', error);
-                        alert('❌ Failed to start journey. Please check your connection.');
-                    });
+                function(pos) {
+                    currentPosition = pos;
+                    sendStartRequest(pos.coords.latitude, pos.coords.longitude);
                 },
-                function(error) {
-                    console.error('Geolocation error:', error);
-                    alert('❌ Unable to get your location. Please enable GPS and try again.');
+                function(err) {
+                    hideLoading();
+                    showToast('Cannot start without location', 'error');
                 },
                 { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );
         }
 
-        // Stop tracking journey
-        function stopJourney() {
-            if (!confirm('⏹️ Stop journey? Your tracking will be ended.')) {
-                return;
-            }
-
-            const mobile = document.getElementById('driverMobile').value.trim();
+        // Send start request to backend
+        function sendStartRequest(lat, lng) {
             const payload = {
-                action: "stop",
-                phone: mobile
+                action: "start",
+                name: driverName,
+                phone: driverPhone,
+                latitude: lat,
+                longitude: lng
             };
 
             fetch(API_URL, {
-                redirect: 'follow',
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
-                console.log('Stop response:', data);
-                stopLocationTracking();
-                alert('✅ Journey stopped successfully. Thank you!');
+                hideLoading();
+                if (data.status === 'success') {
+                    activateTracking();
+                    updateMapPosition(lat, lng);
+                    pathCoordinates = [[lat, lng]];
+                    updateCount = 1;
+                    saveState();
+                    showToast('Journey started successfully!', 'success');
+                } else {
+                    showToast('Failed to start: ' + (data.message || 'Unknown error'), 'error');
+                }
             })
-            .catch(error => {
-                console.error('Error stopping journey:', error);
-                stopLocationTracking();
-                alert('⚠️ Journey stopped (network error, but request may have succeeded).');
+            .catch(err => {
+                hideLoading();
+                showToast('Network error: ' + err.message, 'error');
             });
         }
 
-        // Start sending location updates every 10 seconds
-        function startLocationTracking() {
-            if (trackingInterval) {
-                clearInterval(trackingInterval);
-            }
-            trackingInterval = setInterval(sendLocationUpdate, 10000);
+        // Activate tracking UI and intervals
+        function activateTracking() {
+            trackingActive = true;
+            
+            // Update UI
+            document.getElementById('driverName').disabled = true;
+            document.getElementById('driverMobile').disabled = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('updateBtn').disabled = false;
+            document.getElementById('statusBadge').textContent = '🟢 Tracking Active';
+            document.getElementById('statusBadge').className = 'status-badge status-active';
+            document.getElementById('displayName').textContent = driverName;
+            document.getElementById('displayPhone').textContent = driverPhone;
+
+            // Start polling backend for status
+            pollingInterval = setInterval(pollBackendStatus, POLL_INTERVAL);
+            
+            // Start sending location updates
+            updateInterval = setInterval(sendLocationUpdate, UPDATE_INTERVAL);
         }
 
-        // Stop sending location updates
-        function stopLocationTracking() {
-            if (trackingInterval) {
-                clearInterval(trackingInterval);
-                trackingInterval = null;
+        // Resume tracking from saved state
+        function resumeTracking() {
+            activateTracking();
+            document.getElementById('updateCount').textContent = updateCount;
+            
+            if (pathCoordinates.length > 0) {
+                polyline.setLatLngs(pathCoordinates);
+                const lastPos = pathCoordinates[pathCoordinates.length - 1];
+                updateMapPosition(lastPos[0], lastPos[1]);
             }
-            isTracking = false;
-            pathCoordinates = [];
-            updateUI();
-            saveData();
+        }
+
+        // Poll backend every 5 seconds to check tracking state
+        function pollBackendStatus() {
+            if (!trackingActive || !driverPhone) return;
+
+            fetch(`${API_URL}?action=status&phone=${driverPhone}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.trackingState === 'STOPPED') {
+                        // Backend says stopped - force stop UI
+                        forceStopUI();
+                        showToast('Tracking stopped by administrator', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Polling error:', err);
+                });
         }
 
         // Send location update to backend
         function sendLocationUpdate() {
+            if (!trackingActive) return;
+
             navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const mobile = document.getElementById('driverMobile').value.trim();
+                function(pos) {
+                    currentPosition = pos;
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+
                     const payload = {
                         action: "update",
-                        phone: mobile,
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
+                        phone: driverPhone,
+                        latitude: lat,
+                        longitude: lng
                     };
 
                     fetch(API_URL, {
-                        redirect: 'follow',
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payload)
                     })
-                    .then(response => response.json())
+                    .then(res => res.json())
                     .then(data => {
-                        console.log('Update response:', data);
-                        
-                        if (data.status === "row_not_found") {
-                            console.warn('Row not found - tracking continues');
-                        } else if (data.trackingState === "STOPPED") {
-                            console.log('Backend returned STOPPED - forcing stop');
-                            stopLocationTracking();
-                            alert('⚠️ Tracking has been stopped by administrator.');
+                        if (data.trackingState === 'STOPPED') {
+                            forceStopUI();
                             return;
                         }
-                        
+
                         updateCount++;
-                        pathCoordinates.push([position.coords.latitude, position.coords.longitude]);
-                        updateMarker(position.coords.latitude, position.coords.longitude);
-                        drawPath();
                         document.getElementById('updateCount').textContent = updateCount;
                         document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-IN');
-                        saveData();
+                        
+                        // Update speed
+                        const speed = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
+                        document.getElementById('speedValue').textContent = speed + ' km/h';
+
+                        // Update map and path
+                        updateMapPosition(lat, lng, true);
+                        pathCoordinates.push([lat, lng]);
+                        polyline.setLatLngs(pathCoordinates);
+                        
+                        saveState();
                     })
-                    .catch(error => {
-                        console.error('Network error on update:', error);
+                    .catch(err => {
+                        console.error('Update error:', err);
                     });
                 },
-                function(error) {
-                    console.error('Geolocation error:', error);
+                function(err) {
+                    console.error('Geolocation error:', err);
                 },
                 { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );
         }
 
-        // Force immediate location update
+        // Force update now
         function forceUpdate() {
             sendLocationUpdate();
+            showToast('Location updated', 'success');
         }
 
-        // Poll backend every 5 seconds to get current driver status
-        function startBackendPolling() {
-            setInterval(pollBackend, 5000);
+        // Stop journey
+        function stopJourney() {
+            if (!confirm('Stop journey? This will end location tracking.')) return;
+
+            showLoading();
+
+            const payload = {
+                action: "stop",
+                phone: driverPhone
+            };
+
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                hideLoading();
+                deactivateTracking();
+                showToast('Journey stopped successfully!', 'success');
+            })
+            .catch(err => {
+                hideLoading();
+                deactivateTracking();
+                showToast('Stopped (network error)', 'error');
+            });
         }
 
-        // Poll backend for current driver data
-        function pollBackend() {
-            const mobile = document.getElementById('driverMobile').value.trim();
-            if (!mobile || mobile.length !== 10) {
-                return;
-            }
-
-            fetch(`${API_URL}?phone=${mobile}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === "success" && data.driver) {
-                        updateDriverInfo(data.driver);
-                    }
-                })
-                .catch(error => {
-                    console.error('Polling error:', error);
-                });
+        // Force stop from backend
+        function forceStopUI() {
+            deactivateTracking();
         }
 
-        // Update driver information from backend response
-        function updateDriverInfo(driver) {
-            const stateEl = document.getElementById('trackingState');
-            stateEl.textContent = driver.trackingState || 'UNKNOWN';
-            stateEl.className = 'info-card-value ' + (driver.trackingState === 'ACTIVE' ? 'state-active' : 'state-inactive');
+        // Deactivate tracking
+        function deactivateTracking() {
+            trackingActive = false;
             
-            document.getElementById('latDisplay').textContent = driver.latitude || '-';
-            document.getElementById('lngDisplay').textContent = driver.longitude || '-';
+            if (pollingInterval) clearInterval(pollingInterval);
+            if (updateInterval) clearInterval(updateInterval);
+
+            document.getElementById('driverName').disabled = false;
+            document.getElementById('driverMobile').disabled = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('updateBtn').disabled = true;
+            document.getElementById('statusBadge').textContent = '🔴 Tracking Inactive';
+            document.getElementById('statusBadge').className = 'status-badge status-inactive';
+
+            localStorage.removeItem('roshiTracking');
+            pathCoordinates = [];
+            updateCount = 0;
+        }
+
+        // ==================== MAP UPDATES ====================
+        // Update map position with smooth animation
+        function updateMapPosition(lat, lng, animate = false) {
+            const newPos = [lat, lng];
             
-            if (driver.lastUpdate) {
-                document.getElementById('lastUpdate').textContent = new Date(driver.lastUpdate).toLocaleTimeString('en-IN');
-            }
-
-            // Update marker if coordinates exist
-            if (driver.latitude && driver.longitude) {
-                updateMarker(parseFloat(driver.latitude), parseFloat(driver.longitude));
-            }
-
-            // Update UI based on tracking state
-            if (driver.trackingState === 'ACTIVE' && !isTracking) {
-                // Backend says active but UI doesn't think so - sync up
-                isTracking = true;
-                updateUI();
-            } else if (driver.trackingState === 'STOPPED' && isTracking) {
-                // Backend says stopped but UI still tracking - stop
-                stopLocationTracking();
-            }
-        }
-
-        // Update marker position on map
-        function updateMarker(lat, lng) {
-            if (!map) return;
-
-            if (driverMarker) {
-                driverMarker.setLatLng([lat, lng]);
+            if (animate && marker) {
+                // Smooth marker transition
+                marker.setLatLng(newPos);
+                map.panTo(newPos, { animate: true, duration: 1.0 });
             } else {
-                driverMarker = L.marker([lat, lng], { icon: driverIcon }).addTo(map);
-                map.setView([lat, lng], 13);
+                marker.setLatLng(newPos);
+                map.setView(newPos, 15);
             }
 
-            // Smoothly pan to new location
-            map.panTo([lat, lng], { animate: true, duration: 1 });
+            updateCoordDisplay(lat, lng);
         }
 
-        // Draw path showing movement history
-        function drawPath() {
-            if (!map || pathCoordinates.length < 2) return;
-
-            if (pathPolyline) {
-                map.removeLayer(pathPolyline);
-            }
-
-            pathPolyline = L.polyline(pathCoordinates, {
-                color: '#2196F3',
-                weight: 4,
-                opacity: 0.7,
-                smoothFactor: 1
-            }).addTo(map);
+        // Update coordinate display
+        function updateCoordDisplay(lat, lng) {
+            document.getElementById('coordDisplay').textContent = 
+                `📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
         }
 
-        // Update UI based on tracking state
-        function updateUI() {
-            const startBtn = document.getElementById('startBtn');
-            const stopBtn = document.getElementById('stopBtn');
-            const updateBtn = document.getElementById('updateBtn');
-            const nameInput = document.getElementById('driverName');
-            const mobileInput = document.getElementById('driverMobile');
-            const headerStatus = document.getElementById('headerStatus');
-            const stateEl = document.getElementById('trackingState');
-
-            if (isTracking) {
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-                updateBtn.disabled = false;
-                nameInput.disabled = true;
-                mobileInput.disabled = true;
-                headerStatus.className = 'status-badge active';
-                headerStatus.innerHTML = '<span>🟢</span><span>Active</span>';
-                stateEl.textContent = 'ACTIVE';
-                stateEl.className = 'info-card-value state-active';
-            } else {
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                updateBtn.disabled = true;
-                nameInput.disabled = false;
-                mobileInput.disabled = false;
-                headerStatus.className = 'status-badge inactive';
-                headerStatus.innerHTML = '<span>🔴</span><span>Inactive</span>';
-                stateEl.textContent = 'INACTIVE';
-                stateEl.className = 'info-card-value state-inactive';
-            }
-        }
-
-        // Open Google Maps navigation
+        // ==================== NAVIGATION ====================
         function openNavigation() {
             if (!routeOrigin || !routeDestination) {
-                alert('⚠️ Route information not available. Please return to the Approved Route page.');
+                showToast('Route info not available', 'error');
                 return;
             }
 
-            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(routeOrigin)}&destination=${encodeURIComponent(routeDestination)}&travelmode=driving`;
-            window.open(mapsUrl, '_blank');
+            const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(routeOrigin)}&destination=${encodeURIComponent(routeDestination)}&travelmode=driving`;
+            window.open(url, '_blank');
+        }
+
+        // ==================== UTILITIES ====================
+        function saveState() {
+            const state = {
+                name: driverName,
+                phone: driverPhone,
+                isTracking: trackingActive,
+                updateCount: updateCount,
+                path: pathCoordinates
+            };
+            localStorage.setItem('roshiTracking', JSON.stringify(state));
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            document.querySelector('.theme-toggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
         }
     </script>
 </body>
