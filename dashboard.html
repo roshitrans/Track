@@ -679,9 +679,6 @@
         }
 
         function isMoving(driver) {
-            if (driver.Status === 'Stopped') return false;
-            if (driver.Speed > 5) return true;
-            
             const mobile = driver.Mobile;
             const lastPos = lastPositions[mobile];
             
@@ -722,6 +719,8 @@
         }
 
         function updateMap(drivers) {
+            console.log('🗺️ updateMap called with', drivers.length, 'drivers');
+            
             const bounds = [];
             const currentMobiles = new Set(drivers.map(d => d.Mobile));
 
@@ -730,9 +729,12 @@
                 const lng = driver.Longitude;
                 const mobile = driver.Mobile;
                 
+                console.log(`📍 Processing ${driver.Name} (${mobile}): lat=${lat}, lng=${lng}, state=${driver.TrackingState}`);
+                
                 if (isNaN(lat) || isNaN(lng) || 
                     lat < -90 || lat > 90 || 
                     lng < -180 || lng > 180) {
+                    console.warn(`❌ Invalid coordinates for ${driver.Name}: lat=${lat}, lng=${lng}`);
                     return;
                 }
 
@@ -749,6 +751,7 @@
                 if (!lastRoute || calculateDistance(lastRoute[0], lastRoute[1], lat, lng) > 5) {
                     routes[mobile].push([lat, lng]);
                     if (routes[mobile].length > 200) routes[mobile].shift();
+                    console.log(`🛤️ Added route point for ${driver.Name}, total points: ${routes[mobile].length}`);
                 }
 
                 if (routes[mobile].length > 1) {
@@ -758,6 +761,7 @@
                             color: moving ? '#2196F3' : '#9E9E9E',
                             weight: moving ? 4 : 3
                         });
+                        console.log(`✏️ Updated polyline for ${driver.Name}`);
                     } else {
                         polylines[mobile] = L.polyline(routes[mobile], {
                             color: moving ? '#2196F3' : '#9E9E9E',
@@ -765,10 +769,11 @@
                             opacity: 0.8,
                             smoothFactor: 1
                         }).addTo(map);
+                        console.log(`🆕 Created polyline for ${driver.Name}`);
                     }
                 }
 
-                const isStopped = driver.Status === 'Stopped';
+                const isStopped = driver.TrackingState === 'STOPPED';
                 const iconColor = isStopped ? '#757575' : (moving ? '#2196F3' : '#4CAF50');
                 const iconSize = moving ? 35 : 30;
 
@@ -786,28 +791,33 @@
                     
                     if (distance > 5) {
                         animateMarker(markers[mobile], newLatLng, 1000);
+                        console.log(`🚀 Animated marker for ${driver.Name}, distance: ${distance.toFixed(2)}m`);
                     }
                     markers[mobile].setIcon(customIcon);
+                    console.log(`♻️ Updated existing marker for ${driver.Name}`);
                 } else {
                     markers[mobile] = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+                    console.log(`✅ Created NEW marker for ${driver.Name} at [${lat}, ${lng}]`);
                 }
 
                 const time = new Date(driver.Timestamp).toLocaleString('en-IN');
                 const speedDisplay = driver.Speed > 0 ? `🚗 ${Math.round(driver.Speed)} km/h` : '🛑 Stopped';
                 const movingStatus = moving ? '🔵 Moving' : '⚪ Stationary';
+                const trackingStatus = isStopped ? '⏸️ Stopped' : '▶️ Active';
                 
                 markers[mobile].bindPopup(`
                     <strong>${driver.Name}</strong><br>
                     📱 ${driver.Mobile}<br>
                     ${speedDisplay}<br>
                     ${movingStatus}<br>
-                    ⏰ ${time}<br>
-                    📍 Accuracy: ±${driver.Accuracy}m
+                    ${trackingStatus}<br>
+                    ⏰ ${time}
                 `);
             });
 
             Object.keys(markers).forEach(mobile => {
                 if (!currentMobiles.has(mobile)) {
+                    console.log(`🗑️ Removing marker for ${mobile} (row deleted)`);
                     if (markers[mobile]) {
                         map.removeLayer(markers[mobile]);
                         delete markers[mobile];
@@ -824,7 +834,10 @@
 
             if (bounds.length > 0 && Object.keys(markers).length === drivers.length) {
                 map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+                console.log(`🎯 Map fitted to ${bounds.length} markers`);
             }
+            
+            console.log(`📊 Final marker count: ${Object.keys(markers).length}`);
         }
 
         function getTimeAgo(timestamp) {
@@ -854,7 +867,7 @@
             if (drivers.length === 0) {
                 const existingCards = container.querySelectorAll('.driver-card');
                 if (existingCards.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                    container.innerHTML = '<div class="empty-state"><p>No drivers in sheet. Waiting for data...</p></div>';
                 }
                 return;
             }
@@ -885,7 +898,7 @@
                             card.remove();
                         }
                         if (container.querySelectorAll('.driver-card').length === 0) {
-                            container.innerHTML = '<div class="empty-state"><p>No drivers tracking. Waiting for drivers to start journey...</p></div>';
+                            container.innerHTML = '<div class="empty-state"><p>No drivers in sheet. Waiting for data...</p></div>';
                         }
                     }, 300);
                     delete existingCards[mobile];
@@ -899,21 +912,22 @@
 
             drivers.forEach(driver => {
                 const mobile = driver.Mobile;
-                const moving = driver.Status !== 'Stopped' && isMoving(driver);
+                const moving = isMoving(driver);
                 const timeAgo = getTimeAgo(driver.Timestamp);
+                const isStopped = driver.TrackingState === 'STOPPED';
 
                 if (existingCards[mobile]) {
                     const card = existingCards[mobile];
                     const oldClass = card.className;
-                    const newClass = `driver-card ${moving ? 'moving' : (driver.Status === 'Stopped' ? 'stopped' : '')}`;
+                    const newClass = `driver-card ${moving ? 'moving' : (isStopped ? 'stopped' : '')}`;
                     
                     if (oldClass !== newClass) {
                         card.className = newClass;
                     }
 
                     const statusBadge = card.querySelector('.status-badge');
-                    const newStatusClass = moving ? 'status-moving' : (driver.Status === 'Stopped' ? 'status-stopped' : 'status-active');
-                    const newStatusText = moving ? '🔵 Moving' : (driver.Status === 'Stopped' ? 'Stopped' : 'Active');
+                    const newStatusClass = moving ? 'status-moving' : (isStopped ? 'status-stopped' : 'status-active');
+                    const newStatusText = moving ? '🔵 Moving' : (isStopped ? '⏸️ Stopped' : '▶️ Active');
                     
                     if (statusBadge.className !== `status-badge ${newStatusClass}`) {
                         statusBadge.className = `status-badge ${newStatusClass}`;
@@ -938,7 +952,7 @@
 
                 } else {
                     const newCard = document.createElement('div');
-                    newCard.className = `driver-card ${moving ? 'moving' : (driver.Status === 'Stopped' ? 'stopped' : '')}`;
+                    newCard.className = `driver-card ${moving ? 'moving' : (isStopped ? 'stopped' : '')}`;
                     newCard.dataset.mobile = mobile;
                     newCard.style.opacity = '0';
                     newCard.style.transform = 'translateY(20px)';
@@ -950,14 +964,14 @@
                                 <h3>${driver.Name}</h3>
                                 <p>📱 ${driver.Mobile}</p>
                             </div>
-                            <span class="status-badge ${moving ? 'status-moving' : (driver.Status === 'Stopped' ? 'status-stopped' : 'status-active')}">
-                                ${moving ? '🔵 Moving' : (driver.Status === 'Stopped' ? 'Stopped' : 'Active')}
+                            <span class="status-badge ${moving ? 'status-moving' : (isStopped ? 'status-stopped' : 'status-active')}">
+                                ${moving ? '🔵 Moving' : (isStopped ? '⏸️ Stopped' : '▶️ Active')}
                             </span>
                         </div>
                         <div class="driver-details">
                             <div>⏰ <span class="${timeAgo.fresh ? 'time-ago' : 'time-stale'}">${timeAgo.text}</span></div>
                             <div>🚗 Speed: ${Math.round(driver.Speed)} km/h</div>
-                            <div>📍 Accuracy: ±${driver.Accuracy}m</div>
+                            <div>📍 State: ${driver.TrackingState || 'Unknown'}</div>
                         </div>
                         <div class="driver-actions">
                             <button class="action-btn btn-update" onclick="refreshData()">Update</button>
@@ -988,8 +1002,8 @@
         }
 
         function updateStats(drivers) {
-            const activeDrivers = drivers.filter(d => d.Status === 'Active').length;
-            const movingDrivers = drivers.filter(d => d.Status === 'Active' && isMoving(d)).length;
+            const activeDrivers = drivers.filter(d => d.TrackingState === 'ACTIVE').length;
+            const movingDrivers = drivers.filter(d => isMoving(d)).length;
             
             smoothUpdateElement(document.getElementById('activeCount'), activeDrivers.toString());
             smoothUpdateElement(document.getElementById('movingCount'), movingDrivers.toString());
@@ -1009,6 +1023,8 @@
         }
 
         async function refreshData() {
+            console.log('🔄 Refresh started at', new Date().toLocaleTimeString());
+            
             try {
                 const response = await fetch(API_URL + '?_=' + Date.now(), { 
                     method: 'GET',
@@ -1020,37 +1036,56 @@
                 }
                 
                 const data = await response.json();
+                console.log('📦 Raw API response:', data);
                 
                 if (data.status !== 'success') {
                     throw new Error(data.message || 'API returned error status');
                 }
 
-                const activeDrivers = (data.drivers || [])
-                    .filter(d => d.trackingState === 'ACTIVE')
-                    .map(d => ({
-                        Name: d.name || '',
-                        Mobile: d.phone || '',
-                        Latitude: parseFloat(d.latitude) || 0,
-                        Longitude: parseFloat(d.longitude) || 0,
-                        Status: 'Active',
-                        Speed: 0,
-                        Accuracy: '-',
-                        Timestamp: d.lastUpdateTime || new Date().toISOString()
-                    }))
-                    .filter(d => 
-                        d.Mobile && 
-                        !isNaN(d.Latitude) && !isNaN(d.Longitude) &&
-                        d.Latitude >= -90 && d.Latitude <= 90 &&
-                        d.Longitude >= -180 && d.Longitude <= 180
-                    );
+                console.log(`📊 Received ${data.drivers?.length || 0} drivers from API`);
 
-                updateStats(activeDrivers);
-                updateMap(activeDrivers);
-                updateDriverList(activeDrivers);
+                const allDrivers = (data.drivers || [])
+                    .map(d => {
+                        const lat = parseFloat(d.latitude);
+                        const lng = parseFloat(d.longitude);
+                        
+                        console.log(`🔍 Parsing driver: name=${d.name}, phone=${d.phone}, lat=${lat}, lng=${lng}, state=${d.trackingState}`);
+                        
+                        return {
+                            Name: d.name || '',
+                            Mobile: d.phone || '',
+                            Latitude: lat,
+                            Longitude: lng,
+                            TrackingState: d.trackingState || 'UNKNOWN',
+                            Speed: 0,
+                            Timestamp: d.lastUpdateTime || new Date().toISOString()
+                        };
+                    })
+                    .filter(d => {
+                        const valid = d.Mobile && 
+                                    !isNaN(d.Latitude) && !isNaN(d.Longitude) &&
+                                    d.Latitude >= -90 && d.Latitude <= 90 &&
+                                    d.Longitude >= -180 && d.Longitude <= 180;
+                        
+                        if (!valid) {
+                            console.warn(`❌ Filtered out invalid driver: ${d.Name || 'Unknown'}, mobile=${d.Mobile}, lat=${d.Latitude}, lng=${d.Longitude}`);
+                        } else {
+                            console.log(`✅ Valid driver: ${d.Name}, will create marker at [${d.Latitude}, ${d.Longitude}], state=${d.TrackingState}`);
+                        }
+                        
+                        return valid;
+                    });
+
+                console.log(`✅ Final driver count after validation: ${allDrivers.length}`);
+
+                updateStats(allDrivers);
+                updateMap(allDrivers);
+                updateDriverList(allDrivers);
                 
                 nextRefreshTime = Date.now() + REFRESH_INTERVAL;
+                console.log('✅ Refresh completed successfully');
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('❌ Error fetching data:', error);
                 document.getElementById('activeStatus').textContent = 'Connection error';
             }
         }
@@ -1062,6 +1097,7 @@
         }
 
         window.onload = function() {
+            console.log('🚀 Dashboard initializing...');
             initMap();
             refreshData();
             startAutoRefresh();
