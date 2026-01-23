@@ -108,10 +108,10 @@
                 <h2>🗺️ Real-Time Map</h2>
                 <div class="map-controls">
                     <select class="interval-selector" id="intervalSelector" onchange="changeRefreshInterval()">
-                        <option value="5000" selected>Refresh: 5s</option>
+                        <option value="3000" selected>Refresh: 3s</option>
+                        <option value="5000">Refresh: 5s</option>
                         <option value="10000">Refresh: 10s</option>
                         <option value="15000">Refresh: 15s</option>
-                        <option value="30000">Refresh: 30s</option>
                     </select>
                     <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">🔄 Refresh Now</button>
                 </div>
@@ -133,10 +133,13 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const API_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxyirlhBcpliW0APbADmCc4Uhqmr2JGPyELFY8Jw1unHys7P-0Eu7Ooi3rFCFX6dFLv2w/exec';
-        let REFRESH_INTERVAL = 5000;
+        let REFRESH_INTERVAL = 3000;
         let map, markers = {}, polylines = {}, routes = {}, currentDrivers = {};
-        let refreshIntervalId, countdownIntervalId, nextRefreshTime = 0;
+        let refreshIntervalId, countdownIntervalId, animationIntervalId, nextRefreshTime = 0;
         let isFirstLoad = true, consecutiveErrors = 0;
+
+        // Animation state for smooth marker movement
+        const animationState = {};
 
         function initMap() {
             map = L.map('map').setView([20.5937, 78.9629], 5);
@@ -178,6 +181,59 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
+        // Smooth interpolation between two coordinates
+        function interpolatePosition(start, end, progress) {
+            return {
+                lat: start.lat + (end.lat - start.lat) * progress,
+                lng: start.lng + (end.lng - start.lng) * progress
+            };
+        }
+
+        // Animate marker movement smoothly
+        function animateMarker(phone, targetLat, targetLng) {
+            if (!markers[phone]) return;
+
+            const currentPos = markers[phone].getLatLng();
+            const distance = calculateDistance(currentPos.lat, currentPos.lng, targetLat, targetLng);
+
+            // Only animate if movement is significant enough to see
+            if (distance < 0.5) {
+                markers[phone].setLatLng([targetLat, targetLng]);
+                return;
+            }
+
+            // Cancel any existing animation for this marker
+            if (animationState[phone] && animationState[phone].frameId) {
+                cancelAnimationFrame(animationState[phone].frameId);
+            }
+
+            // Set up animation parameters
+            const startPos = { lat: currentPos.lat, lng: currentPos.lng };
+            const endPos = { lat: targetLat, lng: targetLng };
+            const startTime = Date.now();
+            const duration = Math.min(2000, REFRESH_INTERVAL * 0.8); // Animation duration
+
+            // Animation loop
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Easing function for smooth deceleration
+                const eased = 1 - Math.pow(1 - progress, 3);
+
+                const currentPos = interpolatePosition(startPos, endPos, eased);
+                markers[phone].setLatLng([currentPos.lat, currentPos.lng]);
+
+                if (progress < 1) {
+                    animationState[phone].frameId = requestAnimationFrame(animate);
+                } else {
+                    delete animationState[phone];
+                }
+            }
+
+            animationState[phone] = { frameId: requestAnimationFrame(animate) };
+        }
+
         function updateMap(drivers) {
             if (!drivers || drivers.length === 0) return;
             const currentPhones = new Set(), bounds = [];
@@ -190,21 +246,30 @@
                 currentPhones.add(phone);
                 bounds.push([lat, lng]);
 
+                // Always add point to route for continuous path
                 if (!routes[phone]) routes[phone] = [];
+                
                 const lastPoint = routes[phone][routes[phone].length - 1];
-                if (!lastPoint || calculateDistance(lastPoint[0], lastPoint[1], lat, lng) > 5) {
+                // Add every new point, regardless of distance (captures micro movements)
+                if (!lastPoint || lastPoint[0] !== lat || lastPoint[1] !== lng) {
                     routes[phone].push([lat, lng]);
-                    if (routes[phone].length > 100) routes[phone].shift();
+                    if (routes[phone].length > 200) routes[phone].shift();
                 }
 
+                // Update polyline with every single point
                 if (routes[phone].length > 1) {
                     const isStopped = driver.trackingState === 'STOPPED';
                     const color = isStopped ? '#9E9E9E' : '#2196F3';
                     if (polylines[phone]) {
                         polylines[phone].setLatLngs(routes[phone]);
-                        polylines[phone].setStyle({ color, weight: 3, opacity: 0.6 });
+                        polylines[phone].setStyle({ color, weight: 3, opacity: 0.7 });
                     } else {
-                        polylines[phone] = L.polyline(routes[phone], { color, weight: 3, opacity: 0.6, smoothFactor: 1 }).addTo(map);
+                        polylines[phone] = L.polyline(routes[phone], { 
+                            color, 
+                            weight: 3, 
+                            opacity: 0.7, 
+                            smoothFactor: 0.5  // Lower smoothFactor for more accurate path
+                        }).addTo(map);
                     }
                 }
 
@@ -212,24 +277,32 @@
                 const markerColor = isStopped ? '#757575' : '#4CAF50';
                 const icon = L.divIcon({
                     className: 'custom-marker',
-                    html: `<div style="background: ${markerColor}; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.3s;"></div>`,
+                    html: `<div style="background: ${markerColor}; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: background-color 0.3s;"></div>`,
                     iconSize: [28, 28],
                     iconAnchor: [14, 14]
                 });
 
                 if (markers[phone]) {
-                    markers[phone].setLatLng([lat, lng]);
+                    // Animate to new position instead of jumping
+                    animateMarker(phone, lat, lng);
                     markers[phone].setIcon(icon);
                 } else {
+                    // Create new marker
                     markers[phone] = L.marker([lat, lng], { icon }).addTo(map);
+                    animationState[phone] = {};
                 }
 
                 const timeAgo = getTimeAgo(driver.lastUpdate);
                 markers[phone].bindPopup(`<strong>${driver.driverName || 'Unknown'}</strong><br>📱 ${phone}<br>${isStopped ? '🛑' : '🟢'} ${isStopped ? 'Stopped' : 'Tracking'}<br>⏰ ${timeAgo.text}`);
             });
 
+            // Clean up removed drivers
             Object.keys(markers).forEach(phone => {
                 if (!currentPhones.has(phone)) {
+                    if (animationState[phone] && animationState[phone].frameId) {
+                        cancelAnimationFrame(animationState[phone].frameId);
+                        delete animationState[phone];
+                    }
                     if (markers[phone]) { map.removeLayer(markers[phone]); delete markers[phone]; }
                     if (polylines[phone]) { map.removeLayer(polylines[phone]); delete polylines[phone]; }
                     delete routes[phone];
@@ -388,6 +461,13 @@
         window.onbeforeunload = () => {
             if (refreshIntervalId) clearInterval(refreshIntervalId);
             if (countdownIntervalId) clearInterval(countdownIntervalId);
+            
+            // Cancel all ongoing animations
+            Object.keys(animationState).forEach(phone => {
+                if (animationState[phone].frameId) {
+                    cancelAnimationFrame(animationState[phone].frameId);
+                }
+            });
         };
     </script>
 </body>
