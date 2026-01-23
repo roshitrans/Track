@@ -455,6 +455,15 @@
         </div>
     </div>
 
+    <!-- Hard Stop Modal (Row Deleted) -->
+    <div class="modal" id="hardStopModal">
+        <div class="modal-content">
+            <h2>Session Reset</h2>
+            <p>Your tracking session has been reset. Please start a new journey.</p>
+            <button class="btn btn-start" onclick="closeModal('hardStopModal')" style="width: 100%;">OK</button>
+        </div>
+    </div>
+
     <script>
         // ============================================================================
         // CONFIGURATION
@@ -727,6 +736,46 @@
         }
 
         // ============================================================================
+        // HARD STOP HANDLER
+        // Triggered when backend indicates driver row no longer exists in Sheet
+        // This is an administrative reset - Sheet is source of truth
+        // ============================================================================
+
+        function handleHardStop() {
+            // Immediately stop all GPS tracking
+            if (trackingState.watchId !== null) {
+                navigator.geolocation.clearWatch(trackingState.watchId);
+                trackingState.watchId = null;
+            }
+
+            // Stop periodic updates
+            if (trackingState.intervalId !== null) {
+                clearInterval(trackingState.intervalId);
+                trackingState.intervalId = null;
+            }
+
+            // Reset all state
+            trackingState.isTracking = false;
+            trackingState.updateCount = 0;
+            trackingState.currentPosition = null;
+            trackingState.driverName = '';
+            trackingState.phoneNumber = '';
+
+            // Reset UI to default state
+            updateStatusIndicator('inactive');
+            setTrackingUI(false);
+            
+            // Clear input fields
+            document.getElementById('driverName').value = '';
+            document.getElementById('driverMobile').value = '';
+            document.getElementById('driverName').disabled = false;
+            document.getElementById('driverMobile').disabled = false;
+
+            // Show soft notification (no scary errors)
+            showModal('hardStopModal');
+        }
+
+        // ============================================================================
         // BACKEND COMMUNICATION
         // ============================================================================
 
@@ -747,20 +796,46 @@
             // Send POST request
             fetch(API_URL, {
                 method: 'POST',
-                mode: 'no-cors', // Apps Script handles CORS
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
             })
-            .then(function() {
-                // no-cors mode doesn't allow reading response
-                // Assume success if no network error
-                console.log('Action sent:', action);
-                if (callback) callback(true);
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                console.log('Backend response:', data);
+
+                // ============================================================
+                // HARD STOP DETECTION
+                // Check if backend indicates row no longer exists
+                // ============================================================
+                if (data && !data.success) {
+                    // Check for row_not_found or similar indicators
+                    const errorMessage = (data.error || '').toLowerCase();
+                    
+                    if (errorMessage.includes('row_not_found') || 
+                        errorMessage.includes('driver not found') ||
+                        errorMessage.includes('phone number not found')) {
+                        
+                        // Sheet has deleted this driver's row
+                        // Trigger hard stop immediately
+                        handleHardStop();
+                        return;
+                    }
+                }
+
+                // Normal success path
+                if (data && data.success) {
+                    if (callback) callback(true);
+                } else {
+                    if (callback) callback(false);
+                }
             })
             .catch(function(error) {
                 console.error('Network error:', error);
+                // Network failures are temporary - don't trigger hard stop
                 if (callback) callback(false);
             });
         }
