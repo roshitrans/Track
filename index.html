@@ -2,153 +2,60 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driver Tracking - Roshi Transport</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        :root {
-            --primary: #FF6B35;
-            --primary-dark: #E85A2A;
-            --secondary: #2E3440;
-            --success: #10B981;
-            --danger: #EF4444;
-            --warning: #F59E0B;
-            --bg: #F8FAFC;
-            --card: #FFFFFF;
-            --text: #1E293B;
-            --text-light: #64748B;
-            --border: #E2E8F0;
-        }
-
-        body.dark-mode {
-            --bg: #0F172A;
-            --card: #1E293B;
-            --text: #F1F5F9;
-            --text-light: #94A3B8;
-            --border: #334155;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #FFF8E7 0%, #F5E6D3 100%);
             min-height: 100vh;
-            padding: 16px;
-            transition: background 0.3s, color 0.3s;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .container {
-            max-width: 480px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 500px;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 24px;
-            padding: 20px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.2);
+            margin-bottom: 30px;
+            padding: 25px 20px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(255, 165, 0, 0.3);
         }
 
         .header h1 {
-            color: white;
-            font-size: 1.5rem;
+            color: #2C1810;
+            font-size: 1.8em;
             font-weight: 700;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
 
         .header p {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        .theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 48px;
-            height: 48px;
-            background: var(--card);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            transition: all 0.3s;
-            z-index: 100;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .theme-toggle:active {
-            transform: scale(0.95);
+            color: #5D4037;
+            font-size: 1em;
+            font-weight: 400;
         }
 
         .card {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-            transition: background 0.3s;
-        }
-
-        .status-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px;
-            background: var(--bg);
-            border-radius: 12px;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .status-idle .status-dot {
-            background: var(--text-light);
-            animation: none;
-        }
-
-        .status-tracking .status-dot {
-            background: var(--success);
-        }
-
-        .status-stopped .status-dot {
-            background: var(--danger);
-            animation: none;
-        }
-
-        .status-error .status-dot {
-            background: var(--warning);
         }
 
         .form-group {
@@ -157,121 +64,169 @@
 
         .form-group label {
             display: block;
-            font-size: 0.875rem;
+            color: #5D4037;
+            font-size: 0.9em;
             font-weight: 600;
-            color: var(--text);
             margin-bottom: 8px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 14px 16px;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            color: var(--text);
-            background: var(--card);
-            transition: all 0.3s;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
-        }
-
-        .form-group input:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 16px;
-            border: none;
-            border-radius: 12px;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .btn:active:not(:disabled) {
-            transform: scale(0.98);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
-            margin-bottom: 12px;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
-            margin-bottom: 12px;
-        }
-
-        .btn-secondary {
-            background: var(--secondary);
-            color: white;
-            box-shadow: 0 4px 16px rgba(46, 52, 64, 0.3);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .stat-box {
-            background: var(--bg);
-            padding: 16px;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-light);
-            font-weight: 500;
-            margin-bottom: 4px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #FFE4B5;
+            border-radius: 12px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1em;
+            color: #2C1810;
+            transition: all 0.3s ease;
+            background: #FFFBF0;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+
+        .form-group input:disabled {
+            background: #F5F5F5;
+            color: #999;
+        }
+
+        .status-indicator {
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .status-inactive {
+            background: #F5F5F5;
+            color: #757575;
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .status-acquiring {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 16px 20px;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+        }
+
+        .btn-navigate {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+            grid-column: span 2;
+        }
+
+        .btn-navigate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stats-box {
+            background: #FFFBF0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .stats-box.show {
+            display: block;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .stat-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: #8D6E63;
+            font-weight: 500;
+        }
+
         .stat-value {
-            font-size: 1.25rem;
-            color: var(--text);
+            color: #2C1810;
             font-weight: 700;
         }
 
         .info-box {
-            background: rgba(255, 107, 53, 0.1);
-            border-left: 4px solid var(--primary);
-            padding: 16px;
-            border-radius: 8px;
+            background: #FFF8E7;
+            border: 2px solid #FFE4B5;
+            border-radius: 12px;
+            padding: 15px;
             margin-top: 20px;
         }
 
         .info-box p {
-            font-size: 0.875rem;
-            color: var(--text);
+            color: #5D4037;
+            font-size: 0.85em;
             line-height: 1.6;
             margin-bottom: 8px;
         }
@@ -280,56 +235,135 @@
             margin-bottom: 0;
         }
 
-        .gps-status {
-            display: flex;
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
             align-items: center;
-            gap: 8px;
-            font-size: 0.75rem;
-            color: var(--text-light);
+            justify-content: center;
         }
 
-        .spinner {
-            width: 12px;
-            height: 12px;
-            border: 2px solid var(--border);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+        .modal.show {
+            display: flex;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
-        @media (max-width: 480px) {
+        .modal-content h2 {
+            color: #2C1810;
+            margin-bottom: 15px;
+        }
+
+        .modal-content p {
+            color: #5D4037;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        footer {
+            text-align: center;
+            color: #8D6E63;
+            font-size: 0.85em;
+            margin-top: 20px;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
             body {
                 padding: 12px;
+                justify-content: flex-start;
             }
 
             .header {
-                padding: 16px;
                 margin-bottom: 20px;
+                padding: 20px 15px;
+                border-radius: 16px;
             }
 
             .header h1 {
-                font-size: 1.25rem;
+                font-size: 1.5em;
+            }
+
+            .header p {
+                font-size: 0.9em;
             }
 
             .card {
-                padding: 20px;
+                padding: 20px 16px;
+                border-radius: 16px;
             }
 
-            .stats-grid {
+            .form-group {
+                margin-bottom: 16px;
+            }
+
+            .form-group input {
+                padding: 14px 12px;
+                font-size: 16px;
+            }
+
+            .button-group {
+                grid-template-columns: 1fr;
                 gap: 10px;
+            }
+
+            .btn {
+                padding: 14px 16px;
+                font-size: 0.9em;
+            }
+
+            .btn-navigate {
+                grid-column: span 1;
+            }
+
+            .modal-content {
+                padding: 24px 20px;
+                width: 92%;
+            }
+
+            .modal-buttons {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 360px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.3em;
+            }
+
+            .card {
+                padding: 16px 12px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
-        <span id="themeIcon">🌙</span>
-    </div>
-
     <div class="container">
         <div class="header">
             <h1>Driver Tracking</h1>
@@ -337,378 +371,399 @@
         </div>
 
         <div class="card">
-            <div class="status-bar">
-                <div class="status-indicator" id="statusIndicator">
-                    <div class="status-dot"></div>
-                    <span id="statusText">Idle</span>
-                </div>
-                <div class="gps-status" id="gpsStatus"></div>
+            <div class="status-indicator status-inactive" id="statusIndicator">
+                🔴 Tracking Inactive
             </div>
 
             <div class="form-group">
-                <label for="driverName">Driver Name</label>
-                <input type="text" id="driverName" placeholder="Enter your name" autocomplete="name">
+                <label>Driver Name</label>
+                <input type="text" id="driverName" placeholder="Enter your name">
             </div>
 
             <div class="form-group">
-                <label for="phoneNumber">Phone Number</label>
-                <input type="tel" id="phoneNumber" placeholder="10-digit mobile number" maxlength="10" autocomplete="tel">
+                <label>Mobile Number</label>
+                <input type="tel" id="driverMobile" placeholder="Enter 10 digit mobile number" maxlength="10">
             </div>
 
-            <button class="btn btn-primary" id="startBtn" onclick="startJourney()">
-                ▶️ Start Journey
-            </button>
+            <div class="button-group">
+                <button class="btn btn-start" id="startBtn" onclick="confirmStart()">
+                    Start Journey
+                </button>
+                <button class="btn btn-stop" id="stopBtn" onclick="confirmStop()" disabled>
+                    Stop Journey
+                </button>
+                <button class="btn btn-navigate" id="navigateBtn" onclick="openNavigation()">
+                    Navigate Me
+                </button>
+            </div>
 
-            <button class="btn btn-danger" id="stopBtn" onclick="stopJourney()" disabled>
-                ⏹️ Stop Journey
-            </button>
-
-            <button class="btn btn-secondary" id="navigateBtn" onclick="openNavigation()">
-                🧭 Navigate Me
-            </button>
-
-            <div class="stats-grid" id="statsGrid" style="display: none;">
-                <div class="stat-box">
-                    <div class="stat-label">Updates Sent</div>
-                    <div class="stat-value" id="updateCount">0</div>
+            <div class="stats-box" id="statsBox">
+                <div class="stat-item">
+                    <span class="stat-label">Last Update:</span>
+                    <span class="stat-value" id="lastUpdate">-</span>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-label">Last Update</div>
-                    <div class="stat-value" id="lastUpdate">—</div>
+                <div class="stat-item">
+                    <span class="stat-label">Updates Sent:</span>
+                    <span class="stat-value" id="updateCount">0</span>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-label">Accuracy</div>
-                    <div class="stat-value" id="accuracy">—</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Speed</div>
-                    <div class="stat-value" id="speed">—</div>
+                <div class="stat-item">
+                    <span class="stat-label">GPS Accuracy:</span>
+                    <span class="stat-value" id="accuracyValue">-</span>
                 </div>
             </div>
 
             <div class="info-box">
-                <p><strong>📱 Keep this page open</strong> while driving for continuous tracking.</p>
-                <p><strong>🔋 Connect to charger</strong> for optimal GPS performance.</p>
-                <p><strong>📍 Location privacy:</strong> Tracking only active during journey.</p>
+                <p><strong>📱 Important:</strong> Keep this page open in your browser while driving.</p>
+                <p><strong>🔋 Tip:</strong> Connect your phone to charger for best results.</p>
+                <p><strong>📍 Privacy:</strong> Location tracking only active during journey.</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2024 Roshi Transport Corporation. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Confirmation Modals -->
+    <div class="modal" id="startModal">
+        <div class="modal-content">
+            <h2>Start Journey?</h2>
+            <p>This will start tracking your location every 10 seconds. Make sure to keep this page open.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-stop" onclick="closeModal('startModal')">Cancel</button>
+                <button class="btn btn-start" onclick="startTracking()">Start</button>
             </div>
         </div>
     </div>
 
+    <div class="modal" id="stopModal">
+        <div class="modal-content">
+            <h2>Stop Journey?</h2>
+            <p>This will stop location tracking. Your last location will remain visible on the dashboard.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-navigate" onclick="closeModal('stopModal')">Cancel</button>
+                <button class="btn btn-stop" onclick="stopTracking()">Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="thankYouModal">
+        <div class="modal-content">
+            <h2>✅ Journey Stopped</h2>
+            <p>Thank you for using Roshi Transport tracking system. Drive safe!</p>
+            <button class="btn btn-start" onclick="closeModal('thankYouModal')" style="width: 100%;">Close</button>
+        </div>
+    </div>
+
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxyirlhBcpliW0APbADmCc4Uhqmr2JGPyELFY8Jw1unHys7P-0Eu7Ooi3rFCFX6dFLv2w/exec';
+        // ============================================================================
+        // CONFIGURATION
+        // ============================================================================
         
-        let watchId = null;
-        let updateCount = 0;
-        let currentLat = null;
-        let currentLng = null;
-        let isTracking = false;
-        let updateInterval = null;
-        let lastUpdateTime = null;
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxyirlhBcpliW0APbADmCc4Uhqmr2JGPyELFY8Jw1unHys7P-0Eu7Ooi3rFCFX6dFLv2w/exec';
+        const UPDATE_INTERVAL = 10000; // 10 seconds
+        
+        // ============================================================================
+        // STATE MANAGEMENT (In-Memory Only)
+        // ============================================================================
+        
+        let trackingState = {
+            isTracking: false,
+            watchId: null,
+            intervalId: null,
+            updateCount: 0,
+            driverName: '',
+            phoneNumber: '',
+            currentPosition: null,
+            routeOrigin: '',
+            routeDestination: ''
+        };
 
-        // Load saved state
-        window.addEventListener('load', () => {
-            const saved = localStorage.getItem('driverState');
-            if (saved) {
-                const state = JSON.parse(saved);
-                document.getElementById('driverName').value = state.name || '';
-                document.getElementById('phoneNumber').value = state.phone || '';
-                
-                if (state.isTracking) {
-                    resumeTracking();
-                }
-            }
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
 
-            // Check for theme preference
-            if (localStorage.getItem('theme') === 'dark') {
-                document.body.classList.add('dark-mode');
-                document.getElementById('themeIcon').textContent = '☀️';
-            }
-        });
+        window.onload = function() {
+            // Extract route parameters from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            trackingState.routeOrigin = urlParams.get('origin') || '';
+            trackingState.routeDestination = urlParams.get('destination') || '';
 
-        function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        }
-
-        function setStatus(status, text) {
-            const indicator = document.getElementById('statusIndicator');
-            indicator.className = 'status-indicator status-' + status;
-            document.getElementById('statusText').textContent = text;
-        }
-
-        function setGPSStatus(text) {
-            const gpsStatus = document.getElementById('gpsStatus');
-            if (text) {
-                gpsStatus.innerHTML = `<div class="spinner"></div><span>${text}</span>`;
-            } else {
-                gpsStatus.innerHTML = '';
-            }
-        }
-
-        function startJourney() {
-            const name = document.getElementById('driverName').value.trim();
-            const phone = document.getElementById('phoneNumber').value.trim();
-
-            if (!name) {
-                alert('Please enter your name');
-                return;
-            }
-
-            if (!phone || phone.length !== 10 || !/^\d+$/.test(phone)) {
-                alert('Please enter a valid 10-digit phone number');
-                return;
-            }
-
+            // Check for browser geolocation support
             if (!navigator.geolocation) {
-                alert('Geolocation is not supported by your browser');
-                return;
+                alert('⚠️ Geolocation is not supported by your browser. This app will not work.');
+                document.getElementById('startBtn').disabled = true;
             }
+        };
 
-            isTracking = true;
-            updateCount = 0;
-
-            // Save state
-            localStorage.setItem('driverState', JSON.stringify({
-                name: name,
-                phone: phone,
-                isTracking: true
-            }));
-
-            // UI changes
-            document.getElementById('driverName').disabled = true;
-            document.getElementById('phoneNumber').disabled = true;
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('statsGrid').style.display = 'grid';
-
-            setStatus('tracking', 'Acquiring GPS...');
-            setGPSStatus('Waiting for GPS fix');
-
-            // Start GPS watch
-            watchId = navigator.geolocation.watchPosition(
-                onLocationSuccess,
-                onLocationError,
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
-
-            // Set up periodic updates (every 3 seconds)
-            updateInterval = setInterval(() => {
-                if (currentLat && currentLng) {
-                    sendUpdate();
-                }
-            }, 3000);
-        }
-
-        function resumeTracking() {
-            isTracking = true;
-            const state = JSON.parse(localStorage.getItem('driverState'));
-            
-            document.getElementById('driverName').disabled = true;
-            document.getElementById('phoneNumber').disabled = true;
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('statsGrid').style.display = 'grid';
-
-            setStatus('tracking', 'Resuming tracking...');
-            setGPSStatus('Acquiring GPS');
-
-            watchId = navigator.geolocation.watchPosition(
-                onLocationSuccess,
-                onLocationError,
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
-
-            updateInterval = setInterval(() => {
-                if (currentLat && currentLng) {
-                    sendUpdate();
-                }
-            }, 3000);
-        }
-
-        function onLocationSuccess(position) {
-            currentLat = position.coords.latitude;
-            currentLng = position.coords.longitude;
-            
-            const accuracy = Math.round(position.coords.accuracy);
-            const speed = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0;
-
-            document.getElementById('accuracy').textContent = accuracy + 'm';
-            document.getElementById('speed').textContent = speed + ' km/h';
-
-            if (!lastUpdateTime) {
-                // First GPS fix - send start action
-                sendStart();
-            }
-
-            setStatus('tracking', 'Tracking Active');
-            setGPSStatus('');
-        }
-
-        function onLocationError(error) {
-            console.error('GPS error:', error);
-            setGPSStatus('GPS error - retrying...');
-            // Don't stop tracking on errors
-        }
-
-        function sendStart() {
-            const name = document.getElementById('driverName').value.trim();
-            const phone = document.getElementById('phoneNumber').value.trim();
-
-            const data = {
-                action: 'start',
-                phoneNumber: phone,
-                driverName: name,
-                latitude: currentLat,
-                longitude: currentLng
-            };
-
-            fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.success) {
-                    updateCount++;
-                    updateUI();
-                } else if (result.error && result.error.includes('row_not_found')) {
-                    handleRowDeleted();
-                }
-            })
-            .catch(err => console.error('Start error:', err));
-        }
-
-        function sendUpdate() {
-            if (!isTracking || !currentLat || !currentLng) return;
-
-            const phone = document.getElementById('phoneNumber').value.trim();
-
-            const data = {
-                action: 'update',
-                phoneNumber: phone,
-                latitude: currentLat,
-                longitude: currentLng
-            };
-
-            fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.success) {
-                    updateCount++;
-                    updateUI();
-                } else if (result.error && result.error.includes('row_not_found')) {
-                    handleRowDeleted();
-                }
-            })
-            .catch(err => {
-                console.error('Update error:', err);
-                // Don't stop on network errors
-            });
-        }
-
-        function updateUI() {
-            lastUpdateTime = new Date();
-            document.getElementById('updateCount').textContent = updateCount;
-            document.getElementById('lastUpdate').textContent = lastUpdateTime.toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-
-        function stopJourney() {
-            if (!confirm('Stop tracking? Your last location will be saved.')) {
-                return;
-            }
-
-            const phone = document.getElementById('phoneNumber').value.trim();
-
-            // Send stop action
-            fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'stop',
-                    phoneNumber: phone
-                })
-            })
-            .then(res => res.json())
-            .then(result => {
-                cleanupTracking();
-                setStatus('stopped', 'Journey Stopped');
-            })
-            .catch(err => {
-                console.error('Stop error:', err);
-                cleanupTracking();
-            });
-        }
-
-        function handleRowDeleted() {
-            // Gracefully handle row deletion from Sheet
-            cleanupTracking();
-            setStatus('idle', 'Session ended remotely');
-            alert('Your tracking session was ended. Please start a new journey if needed.');
-        }
-
-        function cleanupTracking() {
-            isTracking = false;
-            
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-
-            if (updateInterval) {
-                clearInterval(updateInterval);
-                updateInterval = null;
-            }
-
-            document.getElementById('driverName').disabled = false;
-            document.getElementById('phoneNumber').disabled = false;
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('statsGrid').style.display = 'none';
-
-            localStorage.removeItem('driverState');
-            updateCount = 0;
-            currentLat = null;
-            currentLng = null;
-            lastUpdateTime = null;
-
-            setGPSStatus('');
-        }
+        // ============================================================================
+        // NAVIGATE ME FUNCTIONALITY (Reused from old code)
+        // ============================================================================
 
         function openNavigation() {
-            if (!currentLat || !currentLng) {
-                alert('GPS location not available. Please start journey first.');
+            if (!trackingState.routeOrigin || !trackingState.routeDestination) {
+                alert('Route information not available. Please return to the Approved Route page.');
                 return;
             }
 
-            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${currentLat},${currentLng}`;
+            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(trackingState.routeOrigin)}&destination=${encodeURIComponent(trackingState.routeDestination)}&travelmode=driving`;
             window.open(mapsUrl, '_blank');
         }
 
-        // Prevent accidental page closure
-        window.addEventListener('beforeunload', (e) => {
-            if (isTracking) {
-                e.preventDefault();
-                e.returnValue = '';
+        // ============================================================================
+        // UI CONTROL FUNCTIONS
+        // ============================================================================
+
+        function showModal(id) {
+            document.getElementById(id).classList.add('show');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        function updateStatusIndicator(status) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.className = 'status-indicator';
+            
+            if (status === 'inactive') {
+                indicator.classList.add('status-inactive');
+                indicator.textContent = '🔴 Tracking Inactive';
+            } else if (status === 'acquiring') {
+                indicator.classList.add('status-acquiring');
+                indicator.textContent = '🟡 Acquiring GPS...';
+            } else if (status === 'active') {
+                indicator.classList.add('status-active');
+                indicator.textContent = '🟢 Tracking Active - Updating Every 10s';
             }
-        });
+        }
+
+        function setTrackingUI(enabled) {
+            document.getElementById('driverName').disabled = enabled;
+            document.getElementById('driverMobile').disabled = enabled;
+            document.getElementById('startBtn').disabled = enabled;
+            document.getElementById('stopBtn').disabled = !enabled;
+            
+            if (enabled) {
+                document.getElementById('statsBox').classList.add('show');
+            } else {
+                document.getElementById('statsBox').classList.remove('show');
+            }
+        }
+
+        function updateStats(timestamp, accuracy) {
+            trackingState.updateCount++;
+            document.getElementById('updateCount').textContent = trackingState.updateCount;
+            document.getElementById('lastUpdate').textContent = new Date(timestamp).toLocaleTimeString('en-IN');
+            document.getElementById('accuracyValue').textContent = Math.round(accuracy) + ' meters';
+        }
+
+        // ============================================================================
+        // VALIDATION
+        // ============================================================================
+
+        function validateInputs() {
+            const name = document.getElementById('driverName').value.trim();
+            const mobile = document.getElementById('driverMobile').value.trim();
+
+            if (!name) {
+                alert('Please enter your name');
+                return false;
+            }
+
+            if (!mobile || mobile.length !== 10 || !/^\d+$/.test(mobile)) {
+                alert('Please enter a valid 10-digit mobile number');
+                return false;
+            }
+
+            return { name, mobile };
+        }
+
+        // ============================================================================
+        // START JOURNEY FLOW
+        // ============================================================================
+
+        function confirmStart() {
+            const validation = validateInputs();
+            if (!validation) return;
+
+            showModal('startModal');
+        }
+
+        function startTracking() {
+            closeModal('startModal');
+
+            const validation = validateInputs();
+            if (!validation) return;
+
+            // Store driver info in state
+            trackingState.driverName = validation.name;
+            trackingState.phoneNumber = validation.mobile;
+            trackingState.isTracking = true;
+            trackingState.updateCount = 0;
+
+            // Update UI
+            updateStatusIndicator('acquiring');
+            setTrackingUI(true);
+
+            // CRITICAL: Acquire GPS FIRST before sending START action
+            acquireGPSAndStart();
+        }
+
+        function acquireGPSAndStart() {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    // GPS acquired successfully
+                    trackingState.currentPosition = position;
+                    
+                    // Send START action with initial coordinates
+                    sendToBackend('start', position.coords, function(success) {
+                        if (success) {
+                            // Start continuous tracking
+                            startContinuousTracking();
+                            updateStatusIndicator('active');
+                            updateStats(new Date().toISOString(), position.coords.accuracy);
+                        } else {
+                            // Failed to start - reset
+                            resetTracking();
+                            alert('❌ Failed to start tracking. Please try again.');
+                        }
+                    });
+                },
+                function(error) {
+                    // GPS acquisition failed
+                    console.error('GPS error:', error);
+                    resetTracking();
+                    alert('❌ Unable to get your location. Please enable GPS and try again.');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        // ============================================================================
+        // CONTINUOUS TRACKING
+        // ============================================================================
+
+        function startContinuousTracking() {
+            // Start GPS watcher for high-accuracy continuous updates
+            trackingState.watchId = navigator.geolocation.watchPosition(
+                function(position) {
+                    trackingState.currentPosition = position;
+                },
+                function(error) {
+                    console.error('GPS watch error:', error);
+                    // Don't stop tracking on temporary GPS failures
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
+
+            // Start periodic UPDATE actions
+            trackingState.intervalId = setInterval(function() {
+                if (trackingState.currentPosition) {
+                    sendToBackend('update', trackingState.currentPosition.coords, function(success) {
+                        if (success) {
+                            updateStats(new Date().toISOString(), trackingState.currentPosition.coords.accuracy);
+                        }
+                        // Don't stop tracking on temporary network failures
+                    });
+                }
+            }, UPDATE_INTERVAL);
+        }
+
+        // ============================================================================
+        // STOP JOURNEY FLOW
+        // ============================================================================
+
+        function confirmStop() {
+            showModal('stopModal');
+        }
+
+        function stopTracking() {
+            closeModal('stopModal');
+
+            // Send STOP action to backend
+            sendToBackend('stop', null, function(success) {
+                // Clean up regardless of backend response
+                cleanupTracking();
+                showModal('thankYouModal');
+            });
+        }
+
+        function cleanupTracking() {
+            // Clear GPS watcher
+            if (trackingState.watchId !== null) {
+                navigator.geolocation.clearWatch(trackingState.watchId);
+                trackingState.watchId = null;
+            }
+
+            // Clear interval
+            if (trackingState.intervalId !== null) {
+                clearInterval(trackingState.intervalId);
+                trackingState.intervalId = null;
+            }
+
+            // Reset state
+            resetTracking();
+        }
+
+        function resetTracking() {
+            trackingState.isTracking = false;
+            trackingState.updateCount = 0;
+            trackingState.currentPosition = null;
+
+            // Reset UI
+            updateStatusIndicator('inactive');
+            setTrackingUI(false);
+            document.getElementById('driverName').disabled = false;
+            document.getElementById('driverMobile').disabled = false;
+        }
+
+        // ============================================================================
+        // BACKEND COMMUNICATION
+        // ============================================================================
+
+        function sendToBackend(action, coords, callback) {
+            // Build request payload according to Code.gs contract
+            const payload = {
+                action: action,
+                phoneNumber: trackingState.phoneNumber,
+                driverName: trackingState.driverName
+            };
+
+            // Add coordinates for start and update actions
+            if (coords && (action === 'start' || action === 'update')) {
+                payload.latitude = coords.latitude;
+                payload.longitude = coords.longitude;
+            }
+
+            // Send POST request
+            fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Apps Script handles CORS
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function() {
+                // no-cors mode doesn't allow reading response
+                // Assume success if no network error
+                console.log('Action sent:', action);
+                if (callback) callback(true);
+            })
+            .catch(function(error) {
+                console.error('Network error:', error);
+                if (callback) callback(false);
+            });
+        }
     </script>
 </body>
 </html>
