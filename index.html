@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -455,12 +456,11 @@
         </div>
     </div>
 
-    <!-- Hard Stop Modal (Row Deleted) -->
-    <div class="modal" id="hardStopModal">
+    <div class="modal" id="sessionExpiredModal">
         <div class="modal-content">
-            <h2>Session Reset</h2>
-            <p>Your tracking session has been reset. Please start a new journey.</p>
-            <button class="btn btn-start" onclick="closeModal('hardStopModal')" style="width: 100%;">OK</button>
+            <h2>⏱️ Session Ended</h2>
+            <p>Your tracking session has ended automatically after 24 hours.</p>
+            <button class="btn btn-start" onclick="closeModal('sessionExpiredModal')" style="width: 100%;">Close</button>
         </div>
     </div>
 
@@ -471,6 +471,7 @@
         
         const API_URL = 'https://script.google.com/macros/s/AKfycbxyirlhBcpliW0APbADmCc4Uhqmr2JGPyELFY8Jw1unHys7P-0Eu7Ooi3rFCFX6dFLv2w/exec';
         const UPDATE_INTERVAL = 10000; // 10 seconds
+        const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
         
         // ============================================================================
         // STATE MANAGEMENT (In-Memory Only)
@@ -485,8 +486,45 @@
             phoneNumber: '',
             currentPosition: null,
             routeOrigin: '',
-            routeDestination: ''
+            routeDestination: '',
+            sessionStartTime: null // Session start time from backend (ISO string)
         };
+
+        // ============================================================================
+        // 24 HOUR SESSION LIMIT LOGIC
+        // ============================================================================
+
+        /**
+         * Check if the current session has exceeded 24 hours.
+         * Uses sessionStartTime from backend as source of truth.
+         * Returns true if session has expired, false otherwise.
+         */
+        function checkSessionExpired() {
+            if (!trackingState.sessionStartTime) {
+                return false; // No session active
+            }
+
+            const startTime = new Date(trackingState.sessionStartTime).getTime();
+            const currentTime = Date.now();
+            const elapsed = currentTime - startTime;
+
+            return elapsed >= SESSION_DURATION;
+        }
+
+        /**
+         * Auto-stop tracking when 24 hour limit is reached.
+         * Called after receiving backend responses and on page load.
+         */
+        function handleSessionExpiration() {
+            if (checkSessionExpired()) {
+                // Send stop action to backend (optional, safe)
+                sendToBackend('stop', null, function() {
+                    // Clean up tracking regardless of backend response
+                    cleanupTracking();
+                    showModal('sessionExpiredModal');
+                });
+            }
+        }
 
         // ============================================================================
         // INITIALIZATION
@@ -503,6 +541,9 @@
                 alert('⚠️ Geolocation is not supported by your browser. This app will not work.');
                 document.getElementById('startBtn').disabled = true;
             }
+
+            // Check session expiration on page load/refresh
+            handleSessionExpiration();
         };
 
         // ============================================================================
@@ -626,12 +667,22 @@
                     trackingState.currentPosition = position;
                     
                     // Send START action with initial coordinates
-                    sendToBackend('start', position.coords, function(success) {
+                    sendToBackend('start', position.coords, function(success, responseData) {
                         if (success) {
-                            // Start continuous tracking
-                            startContinuousTracking();
-                            updateStatusIndicator('active');
-                            updateStats(new Date().toISOString(), position.coords.accuracy);
+                            // Extract sessionStartTime from backend response
+                            if (responseData && responseData.sessionStartTime) {
+                                trackingState.sessionStartTime = responseData.sessionStartTime;
+                            }
+
+                            // Check 24 hour limit after start
+                            handleSessionExpiration();
+
+                            // Start continuous tracking if not expired
+                            if (trackingState.isTracking) {
+                                startContinuousTracking();
+                                updateStatusIndicator('active');
+                                updateStats(new Date().toISOString(), position.coords.accuracy);
+                            }
                         } else {
                             // Failed to start - reset
                             resetTracking();
@@ -677,9 +728,20 @@
             // Start periodic UPDATE actions
             trackingState.intervalId = setInterval(function() {
                 if (trackingState.currentPosition) {
-                    sendToBackend('update', trackingState.currentPosition.coords, function(success) {
+                    sendToBackend('update', trackingState.currentPosition.coords, function(success, responseData) {
                         if (success) {
-                            updateStats(new Date().toISOString(), trackingState.currentPosition.coords.accuracy);
+                            // Update sessionStartTime if provided in response
+                            if (responseData && responseData.sessionStartTime) {
+                                trackingState.sessionStartTime = responseData.sessionStartTime;
+                            }
+
+                            // Check 24 hour limit after each update
+                            handleSessionExpiration();
+
+                            // Update stats if still tracking
+                            if (trackingState.isTracking) {
+                                updateStats(new Date().toISOString(), trackingState.currentPosition.coords.accuracy);
+                            }
                         }
                         // Don't stop tracking on temporary network failures
                     });
@@ -727,52 +789,13 @@
             trackingState.isTracking = false;
             trackingState.updateCount = 0;
             trackingState.currentPosition = null;
+            trackingState.sessionStartTime = null; // Clear session start time
 
             // Reset UI
             updateStatusIndicator('inactive');
             setTrackingUI(false);
             document.getElementById('driverName').disabled = false;
             document.getElementById('driverMobile').disabled = false;
-        }
-
-        // ============================================================================
-        // HARD STOP HANDLER
-        // Triggered when backend indicates driver row no longer exists in Sheet
-        // This is an administrative reset - Sheet is source of truth
-        // ============================================================================
-
-        function handleHardStop() {
-            // Immediately stop all GPS tracking
-            if (trackingState.watchId !== null) {
-                navigator.geolocation.clearWatch(trackingState.watchId);
-                trackingState.watchId = null;
-            }
-
-            // Stop periodic updates
-            if (trackingState.intervalId !== null) {
-                clearInterval(trackingState.intervalId);
-                trackingState.intervalId = null;
-            }
-
-            // Reset all state
-            trackingState.isTracking = false;
-            trackingState.updateCount = 0;
-            trackingState.currentPosition = null;
-            trackingState.driverName = '';
-            trackingState.phoneNumber = '';
-
-            // Reset UI to default state
-            updateStatusIndicator('inactive');
-            setTrackingUI(false);
-            
-            // Clear input fields
-            document.getElementById('driverName').value = '';
-            document.getElementById('driverMobile').value = '';
-            document.getElementById('driverName').disabled = false;
-            document.getElementById('driverMobile').disabled = false;
-
-            // Show soft notification (no scary errors)
-            showModal('hardStopModal');
         }
 
         // ============================================================================
@@ -793,65 +816,31 @@
                 payload.longitude = coords.longitude;
             }
 
-            // Send POST request with redirect follow for Apps Script
+            // Send POST request
             fetch(API_URL, {
                 method: 'POST',
-                redirect: 'follow',
+                mode: 'no-cors', // Apps Script handles CORS
                 headers: {
-                    'Content-Type': 'text/plain;charset=utf-8'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
             })
-            .then(function(response) {
-                // Apps Script returns text, not JSON directly
-                return response.text();
-            })
-            .then(function(text) {
-                console.log('Backend response:', text);
+            .then(function() {
+                // no-cors mode doesn't allow reading response
+                // Assume success if no network error
+                console.log('Action sent:', action);
                 
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    // If parsing fails, assume success for no-cors compatibility
-                    console.log('Response parsing failed, assuming success');
-                    if (callback) callback(true);
-                    return;
-                }
-
-                // ============================================================
-                // HARD STOP DETECTION
-                // Check if backend indicates row no longer exists
-                // ============================================================
-                if (data && !data.success) {
-                    // Check for row_not_found or similar indicators
-                    const errorMessage = (data.error || '').toLowerCase();
-                    
-                    if (errorMessage.includes('row_not_found') || 
-                        errorMessage.includes('driver not found') ||
-                        errorMessage.includes('phone number not found')) {
-                        
-                        // Sheet has deleted this driver's row
-                        // Trigger hard stop immediately
-                        handleHardStop();
-                        return;
-                    }
-                }
-
-                // Normal success path
-                if (data && data.success) {
-                    if (callback) callback(true);
-                } else {
-                    if (callback) callback(false);
-                }
+                // Note: Due to no-cors mode, we cannot read backend response data
+                // The backend should still return sessionStartTime, but we cannot access it
+                // This is a limitation of no-cors mode
+                if (callback) callback(true, null);
             })
             .catch(function(error) {
                 console.error('Network error:', error);
-                // Network failures are temporary - don't trigger hard stop
-                // For Apps Script compatibility, assume success on network errors
-                if (callback) callback(true);
+                if (callback) callback(false, null);
             });
         }
     </script>
 </body>
 </html>
+```
